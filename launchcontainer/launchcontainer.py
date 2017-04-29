@@ -10,15 +10,13 @@ from django.conf import settings
 from django.template import Context, Template
 from django.core import validators
 
+from microsite_configuration.models import Microsite
 from xblock.core import XBlock
 from xblock.fields import Scope, String
 from xblock.fragment import Fragment
 
 
-log = logging.getLogger(__name__)
-
-
-DEFAULT_API_CONF = {'https://wharf.appsembler.com/isc/newdeploy'}
+logger = logging.getLogger(__name__)
 
 
 class LaunchContainerXBlock(XBlock):
@@ -67,12 +65,52 @@ class LaunchContainerXBlock(XBlock):
         else:
             return None
 
-    def _get_API_url(self):
-        uri = settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', DEFAULT_API_CONF)
+    def _validate_conf(self, uri):
+        """Receive a LAUNCHCONTAINER_API_CONF dict and ensure that it is a valid URI.
+
+        This method expects the configuration param to follow this format:
+        """
+
         url_validator = validators.URLValidator()
-        url_validator(uri)
+        try:
+            url_validator(uri)
+        except validators.ValidationError:
+            msg = ("The LAUNCHCONTAINER_API_CONF is not configured properly. "
+                   "Please provide a valid URL.")
+            logger.warning(msg)
+            return None
 
         return uri
+
+    def _get_API_url(self):
+        """Check to see if the URL has been configured in the microsite. If not,
+        fall back to the settings. Finally, default to whatever is defined here."""
+
+        DEFAULT_API_CONF = 'https://wharf.appsembler.com/isc/newdeploy/'
+
+        api_conf = {}
+
+        # Use the microsite value if it is available.
+        if hasattr(self, "runtime"):
+            # TODO: We should really be validating this as the JSON is submitted
+            # in the admin. Let's look into that soon.
+            organization = self.runtime.course_id.org
+            microsite_query = Microsite.objects.filter(key=organization)
+
+            if microsite_query.exists():
+                api_conf = self._validate_conf(
+                    microsite_query[0].values.get('LAUNCHCONTAINER_API_CONF')
+                )
+
+        # If not, fallback to the old way, then all the way back to the default
+        # defined here.
+        if not api_conf:
+            api_conf = self._validate_conf(
+                settings.ENV_TOKENS.get(
+                    'LAUNCHCONTAINER_API_CONF', {}).get('default', DEFAULT_API_CONF)
+            )
+
+        return api_conf
 
     def student_view(self, context=None):
         """
@@ -156,12 +194,12 @@ class LaunchContainerXBlock(XBlock):
             return fragment
         except:  # pragma: NO COVER
             # TODO: Handle all the errors and handle them well.
-            log.error("Don't swallow my exceptions", exc_info=True)
+            logger.error("Don't swallow my exceptions", exc_info=True)
             raise
 
     @XBlock.json_handler
     def studio_submit(self, data, suffix=''):
-        log.info(u'Received data: {}'.format(data))
+        logger.info(u'Received data: {}'.format(data))
 
         # TODO: This could use some better validation.
         try:
@@ -170,14 +208,10 @@ class LaunchContainerXBlock(XBlock):
             self.project_token = data['project_token'].strip()
             self.api_url = self._get_API_url()
 
-            return {
-                'result': 'success',
-            }
+            return {'result': 'success'}
 
         except Exception as e:
-            return {
-                'result': 'Error saving data:{0}'.format(str(e))
-            }
+            return {'result': 'Error saving data:{0}'.format(str(e))}
 
     @staticmethod
     def workbench_scenarios():
