@@ -1,4 +1,3 @@
-
 """This XBlock provides an HTML page fragment to display a button
    allowing the Course user to launch an external course Container
    via Appsembler's Container deploy API.
@@ -9,6 +8,7 @@ import logging
 
 from django.conf import settings
 from django.template import Context, Template
+from django.core import validators
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String
@@ -18,10 +18,7 @@ from xblock.fragment import Fragment
 log = logging.getLogger(__name__)
 
 
-try:
-    API_URL_DEFAULT = settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', None)['default']
-except (KeyError, TypeError):
-    API_URL_DEFAULT = 'http://isc.appsembler.com/isc/newdeploy'  # BBB
+DEFAULT_API_CONF = {'https://wharf.appsembler.com/isc/newdeploy'}
 
 
 class LaunchContainerXBlock(XBlock):
@@ -39,8 +36,8 @@ class LaunchContainerXBlock(XBlock):
         display_name='Project name',
         default=u'(EDIT THIS COMPONENT TO SET PROJECT NAME)',
         scope=Scope.content,
-        help=(u"The name of the container's Project as defined for the "
-             "Appsembler API"),
+        help=(u"The name of the project as defined for the "
+              "Appsembler Virtual Labs (AVL) API."),
     )
 
     project_friendly = String(
@@ -48,12 +45,14 @@ class LaunchContainerXBlock(XBlock):
         default=u'',
         scope=Scope.content,
         help=(u"The name of the container's Project as displayed to the end "
-             "user"),
+              "user"),
     )
 
-    api_url = String(
-        default=API_URL_DEFAULT,
+    project_token = String(
+        display_name='Project Token',
+        default=u'',
         scope=Scope.content,
+        help=(u"This is a unique token that can be found in the AVL dashboard.")
     )
 
     @property
@@ -69,11 +68,11 @@ class LaunchContainerXBlock(XBlock):
             return None
 
     def _get_API_url(self):
-        api_conf = settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', None)
-        try:
-            return api_conf[self.block_course_org]
-        except (TypeError, KeyError):
-            return API_URL_DEFAULT
+        uri = settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', DEFAULT_API_CONF)
+        url_validator = validators.URLValidator()
+        url_validator(uri)
+
+        return uri
 
     def student_view(self, context=None):
         """
@@ -98,13 +97,15 @@ class LaunchContainerXBlock(XBlock):
         context = {
             'project': self.project,
             'project_friendly': self.project_friendly,
-            'user_email' : user_email,
-            'API_url': self.api_url
+            'project_token': self.project_token,
+            'user_email': user_email,
+            'API_url': self._get_API_url()
         }
         frag = Fragment()
         frag.add_content(
             render_template('static/html/launchcontainer.html', context)
         )
+        frag.add_css(render_template("static/css/launchcontainer.css"))
         frag.add_javascript(render_template("static/js/src/launchcontainer.js",
                                             context))
         frag.initialize_js('LaunchContainerXBlock')
@@ -127,11 +128,14 @@ class LaunchContainerXBlock(XBlock):
                (field, none_to_empty(getattr(self, field.name)), validator)
                for field, validator in (
                    (cls.project, 'string'),
-                   (cls.project_friendly, 'string'), )
+                   (cls.project_friendly, 'string'),
+                   (cls.project_token, 'string'),
+               )
             )
 
             context = {
-                'fields': edit_fields
+                'fields': edit_fields,
+                'API_url': self._get_API_url()
             }
             fragment = Fragment()
             fragment.add_content(
@@ -140,26 +144,36 @@ class LaunchContainerXBlock(XBlock):
                     context
                 )
             )
+            # TODO: Should we be relying more heavily on XBlock's tools for
+            # loading this stuff? See:
+            # http://edx.readthedocs.io/projects/xblock-tutorial/en/latest/concepts/methods.html#view-methods
+            fragment.add_css(render_template("static/css/launchcontainer_edit.css"))
             fragment.add_javascript(
-                load_resource("static/js/src/launchcontainer_edit.js"))
+                load_resource("static/js/src/launchcontainer_edit.js")
+            )
             fragment.initialize_js('LaunchContainerEditBlock')
 
             return fragment
         except:  # pragma: NO COVER
+            # TODO: Handle all the errors and handle them well.
             log.error("Don't swallow my exceptions", exc_info=True)
             raise
 
     @XBlock.json_handler
     def studio_submit(self, data, suffix=''):
         log.info(u'Received data: {}'.format(data))
+
+        # TODO: This could use some better validation.
         try:
-            self.project = data['project']
-            self.project_friendly = data['project_friendly']
+            self.project = data['project'].strip()
+            self.project_friendly = data['project_friendly'].strip()
+            self.project_token = data['project_token'].strip()
             self.api_url = self._get_API_url()
 
             return {
                 'result': 'success',
             }
+
         except Exception as e:
             return {
                 'result': 'Error saving data:{0}'.format(str(e))
@@ -177,12 +191,14 @@ class LaunchContainerXBlock(XBlock):
              """)
         ]
 
+
 def load_resource(resource_path):  # pragma: NO COVER
-     """
-     Gets the content of a resource
-     """
-     resource_content = pkg_resources.resource_string(__name__, resource_path)
-     return unicode(resource_content)
+    """
+    Gets the content of a resource
+    """
+    resource_content = pkg_resources.resource_string(__name__, resource_path)
+
+    return unicode(resource_content)
 
 
 def render_template(template_path, context=None):  # pragma: NO COVER
@@ -194,4 +210,5 @@ def render_template(template_path, context=None):  # pragma: NO COVER
 
     template_str = load_resource(template_path)
     template = Template(template_str)
+
     return template.render(Context(context))
