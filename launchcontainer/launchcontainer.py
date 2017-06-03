@@ -89,6 +89,7 @@ class LaunchContainerXBlock(XBlock):
     def _get_API_url(self, force=False):
 
         urls = (
+            # TODO: Write tests for each of these.
             # A string: the currently supported implementation.
             settings.ENV_TOKENS.get('LAUNCHCONTAINER_WHARF_ENDPOINT'),
             # A dict: the deprecated version.
@@ -109,7 +110,6 @@ class LaunchContainerXBlock(XBlock):
         """
 
         user_email = None
-
         user_service = self.runtime.service(self, 'user')
         user = user_service.get_current_user()
         user_email = user.emails[0] if type(user.emails) == list else user.email
