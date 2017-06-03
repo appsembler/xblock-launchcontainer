@@ -5,10 +5,12 @@ import json
 import mock
 import unittest
 
+from django.conf import settings
+
 from xblock.field_data import DictFieldData
 from opaque_keys.edx.locations import Location, SlashSeparatedCourseKey
 
-from django.test import modify_settings
+from django.test import override_settings
 
 from .launchcontainer import DEFAULT_WHARF_ENDPOINT
 
@@ -77,7 +79,9 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         """
         block = self.make_one("Custom name")
         fragment = block.student_view()
-        render_template.assert_called_once()
+        self.assertEqual(render_template.call_count, 3)
+
+        # Confirm that the template was rendered properly.
         template_arg = render_template.call_args_list[0][0][0]
         self.assertEqual(
             template_arg,
@@ -86,9 +90,26 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         context = render_template.call_args_list[0][0][1]
         self.assertEqual(context['project'], 'Foo project')
         self.assertEqual(context['project_friendly'], 'Foo Project Friendly Name')
-        self.assertEqual(context['user_email'], None)
+        self.assertEqual(context['project_token'], 'Foo token')
+        self.assertEqual(context['user_email'], block.runtime.service().get_current_user().email)
+        self.assertEqual(context['API_url'], block._wharf_endpoint)
+
+        # Confirm that the css was included.
+        css_template_arg = render_template.call_args_list[1][0][0]
+        self.assertEqual(
+            css_template_arg,
+            'static/css/launchcontainer.css'
+        )
+
+        # Confirm that the JavaScript was included.
+        javascript_template_arg = render_template.call_args_list[2][0][0]
+        self.assertEqual(
+            javascript_template_arg,
+            'static/js/src/launchcontainer.js'
+        )
         fragment.initialize_js.assert_called_once_with(
-            "LaunchContainerXBlock")
+            "LaunchContainerXBlock"
+        )
 
     @mock.patch('launchcontainer.launchcontainer.load_resource', DummyResource)
     @mock.patch('launchcontainer.launchcontainer.render_template')
@@ -154,35 +175,41 @@ class LaunchContainerXBlockTests(unittest.TestCase):
             "project_friendly": proj_friendly_str})))
         self.assertEqual(block.display_name, "Container Launcher")
 
-    @modify_settings(ENV_TOKENS={
-        'LAUNCHCONTAINER_API_CONF': WHARF_ENDPOINT_GOOD
-    })
     def test_api_url_set_defined_with_org(self):
         """
-        Test expected case with ENV TOKEN for DEFAULT_WHARF_ENDPOINT
+        A valid URL at ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] should be used as
+        the URL for requests.
         """
-        block = self.make_one()
-        block.studio_submit(mock.Mock(body='{}'))
-        self.assertEqual(block.api_url, 'https://api.org.com')
+        ENV_TOKENS = settings.ENV_TOKENS
+        ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] = WHARF_ENDPOINT_GOOD
 
-    @modify_settings(ENV_TOKENS={
-        'LAUNCHCONTAINER_API_CONF': WHARF_ENDPOINT_BAD
-    })
+        with override_settings(ENV_TOKENS=ENV_TOKENS):
+            block = self.make_one()
+            block._get_API_url()
+            self.assertEqual(block._wharf_endpoint, WHARF_ENDPOINT_GOOD)
+
     def test_api_url_default_fallback(self):
         """
-        Test expected case with ENV TOKEN for DEFAULT_WHARF_ENDPOINT
+        If ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] is empty, the default should
+        be used.
         """
-        block = self.make_one()
-        block.studio_submit(mock.Mock(body='{}'))
-        self.assertEqual(block.api_url, 'https://api.default.com')
+        ENV_TOKENS = settings.ENV_TOKENS
+        ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] = None
 
-    @modify_settings(ENV_TOKENS={
-        'LAUNCHCONTAINER_API_CONF': WHARF_ENDPOINT_UNSET
-    })
+        with override_settings(ENV_TOKENS=ENV_TOKENS):
+            block = self.make_one()
+            block._get_API_url()
+            self.assertEqual(block._wharf_endpoint, DEFAULT_WHARF_ENDPOINT)
+
     def test_api_url_not_set(self):
         """
-        Test expected case with ENV TOKEN for DEFAULT_WHARF_ENDPOINT
+        If ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] is not a valid url, the default should
+        be used.
         """
-        block = self.make_one()
-        block.studio_submit(mock.Mock(body='{}'))
-        self.assertEqual(block.api_url, DEFAULT_WHARF_ENDPOINT)
+        ENV_TOKENS = settings.ENV_TOKENS
+        ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] = WHARF_ENDPOINT_BAD
+
+        with override_settings(ENV_TOKENS=ENV_TOKENS):
+            block = self.make_one()
+            block._get_API_url()
+            self.assertEqual(block._wharf_endpoint, DEFAULT_WHARF_ENDPOINT)
