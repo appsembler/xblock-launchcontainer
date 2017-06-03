@@ -109,18 +109,10 @@ class LaunchContainerXBlock(XBlock):
         """
 
         user_email = None
-        # workbench runtime won't supply system property
-        if getattr(self, 'system', None):
-            if self.system.anonymous_student_id:
-                if getattr(self.system, 'get_real_user', None):
-                    anon_id = self.system.anonymous_student_id
-                    user = self.system.get_real_user(anon_id)
-                    if user and user.is_authenticated():
-                        user_email = user.email
-                elif self.system.user_is_staff:  # Studio preview
-                    from django.contrib.auth.models import User
-                    user = User.objects.get(id=self.system.user_id)
-                    user_email = user.email
+
+        user_service = self.runtime.service(self, 'user')
+        user = user_service.get_current_user()
+        user_email = user.emails[0] if type(user.emails) == list else user.email
 
         context = {
             'project': self.project,
