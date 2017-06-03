@@ -19,6 +19,27 @@ from xblock.fragment import Fragment
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_WHARF_ENDPOINT = 'https://wharf.appsembler.com/isc/newdeploy'
+
+
+class URL(object):
+
+    def __init__(self, url_string):
+        self.url_string = url_string
+        self.validator = validators.URLValidator()
+
+    def is_valid(self):
+        """Return True if the url is valid."""
+
+        try:
+            self.validator(self.url_string)
+        except validators.ValidationError:
+            return False
+        else:
+            return True
+
+
+@XBlock.needs('user')
 class LaunchContainerXBlock(XBlock):
     """
     Provide a Fragment with associated Javascript to display to
@@ -66,38 +87,21 @@ class LaunchContainerXBlock(XBlock):
         else:
             return None
 
-    def _validate_conf(self, uri):
-        """Receive a LAUNCHCONTAINER_API_CONF dict and ensure that it is a valid URI.
+    def _get_API_url(self, force=False):
 
-        This method expects the configuration param to follow this format:
-        """
-
-        url_validator = validators.URLValidator()
-        try:
-            url_validator(uri)
-        except validators.ValidationError:
-            msg = ("The LAUNCHCONTAINER_API_CONF is not configured properly. "
-                   "Please provide a valid URL.")
-            logger.warning(msg)
-            return None
-
-        return uri
-
-    def _get_API_url(self):
-        """Check to see if the URL has been configured in the microsite. If not,
-        fall back to the settings. Finally, default to whatever is defined here."""
-
-        DEFAULT_API_CONF = 'https://wharf.appsembler.com/isc/newdeploy/'
-
-        # This will first check the SiteConfiguration object that is associated with the Site
-        # object. If that does not exist, it will attempt to fall back to the values in the
-        # MicroSite configuration object.
-        wharf_endpoint = configuration_helpers.get_value(
-            'LAUNCHCONTAINER_API_CONF',
-            settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', DEFAULT_API_CONF)
+        urls = (
+            # A string: the currently supported implementation.
+            settings.ENV_TOKENS.get('LAUNCHCONTAINER_WHARF_ENDPOINT'),
+            # A dict: the deprecated version.
+            settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default'),
+            # Fallback to the default.
+            DEFAULT_WHARF_ENDPOINT
         )
 
-        return wharf_endpoint
+        if not hasattr(self, '_wharf_endpoint') or force:
+            self._wharf_endpoint = next((x for x in urls if URL(x).is_valid()))
+
+        return self._wharf_endpoint
 
     def student_view(self, context=None):
         """
