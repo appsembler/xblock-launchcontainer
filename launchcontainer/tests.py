@@ -12,7 +12,7 @@ from opaque_keys.edx.locations import Location, SlashSeparatedCourseKey
 
 from django.test import override_settings
 
-from .launchcontainer import DEFAULT_WHARF_ENDPOINT
+from .launchcontainer import DEFAULT_WHARF_URL
 
 
 WHARF_ENDPOINT_GOOD = "https://api.org.com"
@@ -177,39 +177,39 @@ class LaunchContainerXBlockTests(unittest.TestCase):
 
     def test_api_url_set_defined_with_org(self):
         """
-        A valid URL at ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] should be used as
+        A valid URL at ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] should be used as
         the URL for requests.
         """
         ENV_TOKENS = settings.ENV_TOKENS
-        ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] = WHARF_ENDPOINT_GOOD
+        ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] = WHARF_ENDPOINT_GOOD
 
         with override_settings(ENV_TOKENS=ENV_TOKENS):
             block = self.make_one()
-            block._get_API_url()
+            block.wharf_url
             self.assertEqual(block._wharf_endpoint, WHARF_ENDPOINT_GOOD)
 
     def test_api_url_default_fallback(self):
         """
-        If ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] is empty, the default should
+        If ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] is empty, the default should
         be used.
         """
         ENV_TOKENS = settings.ENV_TOKENS
-        ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] = None
+        ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] = None
 
         with override_settings(ENV_TOKENS=ENV_TOKENS):
             block = self.make_one()
-            block._get_API_url()
-            self.assertEqual(block._wharf_endpoint, DEFAULT_WHARF_ENDPOINT)
+            block.wharf_url
+            self.assertEqual(block._wharf_endpoint, DEFAULT_WHARF_URL)
 
     def test_api_url_not_set(self):
         """
-        If ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] is not a valid url, the default should
+        If ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] is not a valid url, the default should
         be used.
         """
         ENV_TOKENS = settings.ENV_TOKENS
-        ENV_TOKENS['LAUNCHCONTAINER_WHARF_ENDPOINT'] = WHARF_ENDPOINT_BAD
+        ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] = WHARF_ENDPOINT_BAD
 
         with override_settings(ENV_TOKENS=ENV_TOKENS):
             block = self.make_one()
-            block._get_API_url()
-            self.assertEqual(block._wharf_endpoint, DEFAULT_WHARF_ENDPOINT)
+            block.wharf_url
+            self.assertEqual(block._wharf_endpoint, DEFAULT_WHARF_URL)
