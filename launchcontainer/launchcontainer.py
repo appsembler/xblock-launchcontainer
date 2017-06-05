@@ -10,7 +10,7 @@ from django.conf import settings
 from django.template import Context, Template
 from django.core import validators
 
-from microsite_configuration.models import Microsite
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from xblock.core import XBlock
 from xblock.fields import Scope, String
 from xblock.fragment import Fragment
@@ -88,29 +88,15 @@ class LaunchContainerXBlock(XBlock):
 
         DEFAULT_API_CONF = 'https://wharf.appsembler.com/isc/newdeploy/'
 
-        api_conf = {}
+        # This will first check the SiteConfiguration object that is associated with the Site
+        # object. If that does not exist, it will attempt to fall back to the values in the
+        # MicroSite configuration object.
+        wharf_endpoint = configuration_helpers.get_value(
+            'LAUNCHCONTAINER_API_CONF',
+            settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', DEFAULT_API_CONF)
+        )
 
-        # Use the microsite value if it is available.
-        if hasattr(self, "runtime"):
-            # TODO: We should really be validating this as the JSON is submitted
-            # in the admin. Let's look into that soon.
-            organization = self.runtime.course_id.org
-            microsite_query = Microsite.objects.filter(key=organization)
-
-            if microsite_query.exists():
-                api_conf = self._validate_conf(
-                    microsite_query[0].values.get('LAUNCHCONTAINER_API_CONF')
-                )
-
-        # If not, fallback to the old way, then all the way back to the default
-        # defined here.
-        if not api_conf:
-            api_conf = self._validate_conf(
-                settings.ENV_TOKENS.get(
-                    'LAUNCHCONTAINER_API_CONF', {}).get('default', DEFAULT_API_CONF)
-            )
-
-        return api_conf
+        return wharf_endpoint
 
     def student_view(self, context=None):
         """
