@@ -1,7 +1,8 @@
 # xblock-launchcontainer
+
 Open edX XBlock to include Appsembler's external course Container launcher
 
-v Installation
+# Installation
 
 ## FOR LOCAL DEVELOPMENT
 
@@ -56,8 +57,8 @@ To make a request from the XBlock to Wharf, you should set up your local Wharf e
 ``` 
 ENV_TOKENS = {
     'LAUNCHCONTAINER_API_CONF': {
-     'http://192.xxx.xx.xxx:8000/path/to/AVLContainerEndpoint/'
-    }
+        'default': 'http://192.xxx.xx.xxx:8000/path/to/AVLContainerEndpoint/'
+        }
 }
 ```
 
@@ -82,7 +83,7 @@ You should then be able to take the title and the token of a Wharf project, and 
 
 ### Install the launchcontainer source 
 
-If you have devstack installed, you'll find a `src/` directory on your host, where we'll install the xblock: 
+If you have devstack installed, you'll find a `src/` directory on your host, where we'll install the XBlock: 
 
 ``` 
 $ ls
@@ -106,7 +107,7 @@ $ sudo su edxapp
 $ /edx/bin/pip.edxapp install -e git+https://github.com/appsembler/xblock-launchcontainer.git@master#egg=launchcontainer
 ```
 
-Now we'll edit pips recent install to point to your source by updating the `/edx/app/edxapp/venvs/edxapp/lib/python2.7/site-packages/xblock-launchcontainer.egg-link` file to read as follows: 
+Now we'll edit pip's recent install to point to your source by updating the `/edx/app/edxapp/venvs/edxapp/lib/python2.7/site-packages/xblock-launchcontainer.egg-link` file to read as follows: 
 
 ```
 /edx/src/launchcontainer
@@ -128,7 +129,7 @@ Next, you'll need to update the `/edx/app/edxapp/venvs/edxapp/lib/python2.7/site
 
 ### Enable the XBlock in the devstack UI 
 
-In Studio, navigate to a Course > 'Advanced Settings' > 'Advanced Module List' and add `launchcontainer` to the list.
+In Studio, navigate to a course > 'Advanced Settings' > 'Advanced Module List' and add `launchcontainer` to the list.
 
 ### Set the env vars to point to your instance of Wharf
 
@@ -136,13 +137,131 @@ Update your `lms.env.json` and `cms.env.json` to include:
 
 ```
 'LAUNCHCONTAINER_API_CONF': {
-    'http://192.xxx.xx.xxx:8000/path/to/avlContainerEndpoint/'
+    'default': 'http://192.xxx.xx.xxx:8000/path/to/avlContainerEndpoint/'
 }
 ```
 
 Then restart your devstack studio, and you should be able to use the XBlock, making requests to your local instance of Wharf.
 
 *WARNING: If you are logged in to Wharf in one tab, trying to make requests from the xblock-sdk web server, you'll likely see a 403, and a message that says you've submitted an incorrect token. This fails just because you have a `sessionid` in the other tab and the Wharf API is taking that and treating you like a staff user, who needs a CSRF token. It is hereby recommended that you use an incognito window for the xblock-sdk server and the edX studio server.*
+
+### Set up microsites 
+
+This Xblock is capable of configuration for different microsites. To prepare for microsite development, follow these instructions, which have been adapted from https://github.com/mirjamsk/edx-microsite-tutorial.
+
+#### Edit */etc/hosts* on your host
+
+```
+ 127.0.0.1            foo.localhost
+```
+
+#### Add an example microsite codebase 
+
+``` 
+$ cd <devstackRoot> 
+$ git clone https://github.com/mirjamsk/edx-microsite-tutorial
+``` 
+
+This should leave your folder structure looking like this:
+
+```
+  - /
+    - edx-platform/
+    - edx-microsite/
+      - foo/
+        - css/
+        - images/
+        - templates/
+  ...
+```
+
+
+#### Add the new directory to Vagrant's synced folders 
+
+
+Modify your `Vagranfile`:
+
+``` 
+...
+:edx_microsite => {:repo => "edx-microsite", :local => "/edx/app/edxapp/edx-microsite", :owner => "edxapp"},
+...
+```
+
+*The above assumes that you are using a Vagrantfile managed by Appsembler. The current documentation has been tested against this [Vagrantfile](https://raw.githubusercontent.com/appsembler/configuration/appsembler/eucalyptus/master/vagrant/release/devstack/Vagrantfile.eucalyptus).*
+
+#### Add the configuration to `lms.env.json`
+
+Edit the *lms.env.json* file via `sudo nano /edx/app/edxapp/lms.env.json`  by adding the following lines:
+
+```
+...
+"FEATURES": {
+  ...
+  "USE_MICROSITES": true
+}, 
+...
+"MICROSITE_CONFIGURATION": {
+  "foo": { 
+	  "domain_prefix": "foo", 
+	  "university": "foo", 
+	  "platform_name": "Foo Professional Education Online X Programs", 
+	  "logo_image_url":  "foo/images/header-logo.png", 
+	  "ENABLE_MKTG_SITE":  false, 
+	  "SITE_NAME": "foo.localhost", 
+	  "course_org_filter": "FooX", 
+	  "course_about_show_social_links": false, 
+	  "css_overrides_file":  "foo/css/style.css", 
+	  "show_partners":  false, 
+	  "show_homepage_promo_video": false, 
+	  "course_index_overlay_text": "Explore Foo courses from leading universities", 
+	  "homepage_overlay_html":  "<h1>The Footure of Online Education</h1>", 
+	  "favicon_path": "foo/images/header-logo.png", 
+	  "ENABLE_THIRD_PARTY_AUTH": false, 
+	  "ALLOW_AUTOMATED_SIGNUPS": true, 
+	  "ALWAYS_REDIRECT_HOMEPAGE_TO_DASHBOARD_FOR_AUTHENTICATED_USER": false, 
+	  "course_email_from_addr": "foo@edx.com", 
+	  "SESSION_COOKIE_DOMAIN": "foo.localhost"
+  }
+}, 
+"MICROSITE_ROOT_DIR": "/edx/app/edxapp/edx-microsite", 
+...
+```
+
+#### Restart the vagrant VM 
+
+``` 
+vagrant reload
+```
+
+#### Start the LMS
+
+``` 
+vagrant ssh 
+
+... 
+
+sudo su edxapp; paver devstack lms --setting=devstack_appsembler
+```
+
+If things are configured correctly, you should see something like this in the output console:
+
+```
+[lms.startup] startup.py:127 ­ Loading microsite 
+/edx/app/edxapp/edx­microsite/foo
+```
+
+You should now be able to bring up a web browser and go to `http://foo.localhost:8000`.  In order for a course to appear in the site catalog, you will need to create it in Studio with `organization` set to ‘FooX’.
+
+#### Add a microsite 
+
+Navigate to `http://localhost:8001/admin/microsite_configuration/microsite/add/` and create a new microsite, filling the "Key" field with "FooX" and adding JSON to the "Values" input that matches this: 
+
+``` 
+{
+    "LAUNCHCONTAINER_API_CONF": "http://192.168.99.100:8081/path/to/launchendpoint/"
+}
+```
+
 
 ## PRODUCTION INSTALL 
 
@@ -183,3 +302,4 @@ and
 * Create a Section, Sub-section and Unit, if you haven’t already
 * In the “Add New Component” interface, you should now see an “Advanced” button
 * Click “Advanced” and choose “launchcontainer”
+* Follow the instructions above for setting up microsites

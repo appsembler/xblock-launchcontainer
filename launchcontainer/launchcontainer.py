@@ -14,13 +14,34 @@ from xblock.core import XBlock
 from xblock.fields import Scope, String
 from xblock.fragment import Fragment
 
+try:
+    from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
+except ImportError:  # We're not in an openedx environment.
+    siteconfig_helpers = None
 
-log = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
+DEFAULT_WHARF_URL = 'https://wharf.appsembler.com/isc/newdeploy'
 
 
-DEFAULT_API_CONF = {'https://wharf.appsembler.com/isc/newdeploy'}
+class URL(object):
+
+    def __init__(self, url_string):
+        self.url_string = url_string
+        self.validator = validators.URLValidator()
+
+    def is_valid(self):
+        """Return True if the url is valid."""
+
+        try:
+            self.validator(self.url_string)
+        except validators.ValidationError:
+            return False
+        else:
+            return True
 
 
+@XBlock.needs('user')
 class LaunchContainerXBlock(XBlock):
     """
     Provide a Fragment with associated Javascript to display to
@@ -53,27 +74,32 @@ class LaunchContainerXBlock(XBlock):
         display_name='Project Token',
         default=u'',
         scope=Scope.content,
-        help=(u"This is a unique token that can be found in the AVL dashboard.")
+        help=(u"This is a unique token that can be found in the Appsembler "
+              "Virtual Labs dashboard.")
     )
 
     @property
-    def block_course_org(self):
-        return self.runtime.course_id.org
+    def wharf_url(self, force=False):
+        # TODO: logger.debug the failed validations.
+        site_wharf_url = None
+        if siteconfig_helpers:
+            site_wharf_url = siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')
+        urls = (
+            # A SiteConfig object: this is the preferred implementation.
+            site_wharf_url,
+            # TODO: Maybe we can set up a signal to update this value if
+            # a SiteConfig object is changed.
+            # A string: the currently supported implementation.
+            settings.ENV_TOKENS.get('LAUNCHCONTAINER_WHARF_URL'),
+            # A dict: the deprecated version.
+            settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default'),
+            # Fallback to the default.
+            DEFAULT_WHARF_URL
+        )
 
-    @property
-    def student_email(self):
-        if hasattr(self, "runtime"):
-            user = self.runtime._services['user'].get_current_user()
-            return user.emails[0]
-        else:
-            return None
+        self._wharf_endpoint = next((x for x in urls if URL(x).is_valid()))
 
-    def _get_API_url(self):
-        uri = settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', DEFAULT_API_CONF)
-        url_validator = validators.URLValidator()
-        url_validator(uri)
-
-        return uri
+        return self._wharf_endpoint
 
     def student_view(self, context=None):
         """
@@ -82,25 +108,16 @@ class LaunchContainerXBlock(XBlock):
         """
 
         user_email = None
-        # workbench runtime won't supply system property
-        if getattr(self, 'system', None):
-            if self.system.anonymous_student_id:
-                if getattr(self.system, 'get_real_user', None):
-                    anon_id = self.system.anonymous_student_id
-                    user = self.system.get_real_user(anon_id)
-                    if user and user.is_authenticated():
-                        user_email = user.email
-                elif self.system.user_is_staff:  # Studio preview
-                    from django.contrib.auth.models import User
-                    user = User.objects.get(id=self.system.user_id)
-                    user_email = user.email
+        user_service = self.runtime.service(self, 'user')
+        user = user_service.get_current_user()
+        user_email = user.emails[0] if type(user.emails) == list else user.email
 
         context = {
             'project': self.project,
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
             'user_email': user_email,
-            'API_url': self._get_API_url()
+            'API_url': self.wharf_url
         }
         frag = Fragment()
         frag.add_content(
@@ -136,7 +153,7 @@ class LaunchContainerXBlock(XBlock):
 
             context = {
                 'fields': edit_fields,
-                'API_url': self._get_API_url()
+                'API_url': self.wharf_url
             }
             fragment = Fragment()
             fragment.add_content(
@@ -157,28 +174,24 @@ class LaunchContainerXBlock(XBlock):
             return fragment
         except:  # pragma: NO COVER
             # TODO: Handle all the errors and handle them well.
-            log.error("Don't swallow my exceptions", exc_info=True)
+            logger.error("Don't swallow my exceptions", exc_info=True)
             raise
 
     @XBlock.json_handler
     def studio_submit(self, data, suffix=''):
-        log.info(u'Received data: {}'.format(data))
+        logger.info(u'Received data: {}'.format(data))
 
         # TODO: This could use some better validation.
         try:
             self.project = data['project'].strip()
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()
-            self.api_url = self._get_API_url()
+            self.api_url = self.wharf_url
 
-            return {
-                'result': 'success',
-            }
+            return {'result': 'success'}
 
         except Exception as e:
-            return {
-                'result': 'Error saving data:{0}'.format(str(e))
-            }
+            return {'result': 'Error saving data:{0}'.format(str(e))}
 
     @staticmethod
     def workbench_scenarios():
