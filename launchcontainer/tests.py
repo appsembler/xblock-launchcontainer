@@ -15,7 +15,7 @@ from django.test import override_settings
 from .launchcontainer import DEFAULT_WHARF_URL
 
 
-WHARF_ENDPOINT_GOOD = "https://api.org.com"
+WHARF_ENDPOINT_GOOD = "https://api.localhost"
 WHARF_ENDPOINT_BAD = "notARealUrl"
 WHARF_ENDPOINT_UNSET = ""
 
