@@ -31,7 +31,7 @@ setup(
         'launchcontainer',
     ],
     install_requires=[
-        'XBlock',
+        'XBlock==0.5.0',
     ],
     entry_points={
         'xblock.v1': [
