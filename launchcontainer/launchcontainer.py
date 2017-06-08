@@ -12,7 +12,7 @@ from django.core import validators
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String
-from xblock.fragment import Fragment
+from web_fragments.fragment import Fragment
 
 try:
     from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
@@ -21,7 +21,22 @@ except ImportError:  # We're not in an openedx environment.
 
 
 logger = logging.getLogger(__name__)
+
 DEFAULT_WHARF_URL = 'https://wharf.appsembler.com/isc/newdeploy'
+STATIC_FILES = {
+    'studio': {
+        'template': 'static/html/launchcontainer_edit.html',
+        'css': 'static/css/launchcontainer_edit.css',
+        'js': 'static/js/src/launchcontainer_edit.js',
+        'js_class': 'LaunchContainerEditBlock'
+    },
+    'student': {
+        'template': 'static/html/launchcontainer.html',
+        'css': 'static/css/launchcontainer.css',
+        'js': 'static/js/src/launchcontainer.js',
+        'js_class': 'LaunchContainerXBlock'
+    }
+}
 
 
 class URL(object):
@@ -39,6 +54,17 @@ class URL(object):
             return False
         else:
             return True
+
+
+def _add_static(fragment, type, context):
+    """Add the staticfiles to the fragment, where `type` is either student or studio,
+    and `context` is a dict that will be passed to the render_template function."""
+    fragment.add_content(render_template(STATIC_FILES[type]['template'], context))
+    fragment.add_css(render_template(STATIC_FILES[type]['css'], context))
+    fragment.add_javascript(render_template(STATIC_FILES[type]['js']))
+    fragment.initialize_js(STATIC_FILES[type]['js_class'])
+
+    return fragment
 
 
 @XBlock.needs('user')
@@ -105,7 +131,6 @@ class LaunchContainerXBlock(XBlock):
         The primary view of the LaunchContainerXBlock, shown to students
         when viewing courses.
         """
-
         user_email = None
         user_service = self.runtime.service(self, 'user')
         user = user_service.get_current_user()
@@ -118,15 +143,8 @@ class LaunchContainerXBlock(XBlock):
             'user_email': user_email,
             'API_url': self.wharf_url
         }
-        frag = Fragment()
-        frag.add_content(
-            render_template('static/html/launchcontainer.html', context)
-        )
-        frag.add_css(render_template("static/css/launchcontainer.css"))
-        frag.add_javascript(render_template("static/js/src/launchcontainer.js",
-                                            context))
-        frag.initialize_js('LaunchContainerXBlock')
-        return frag
+
+        return _add_static(Fragment(), 'student', context)
 
     def studio_view(self, context=None):
         """
@@ -150,27 +168,10 @@ class LaunchContainerXBlock(XBlock):
                )
             )
 
-            context = {
-                'fields': edit_fields,
-                'API_url': self.wharf_url
-            }
-            fragment = Fragment()
-            fragment.add_content(
-                render_template(
-                    'static/html/launchcontainer_edit.html',
-                    context
-                )
-            )
-            # TODO: Should we be relying more heavily on XBlock's tools for
-            # loading this stuff? See:
-            # http://edx.readthedocs.io/projects/xblock-tutorial/en/latest/concepts/methods.html#view-methods
-            fragment.add_css(render_template("static/css/launchcontainer_edit.css"))
-            fragment.add_javascript(
-                load_resource("static/js/src/launchcontainer_edit.js")
-            )
-            fragment.initialize_js('LaunchContainerEditBlock')
+            context = {'fields': edit_fields, 'API_url': self.wharf_url}
 
-            return fragment
+            return _add_static(Fragment(), 'studio', context)
+
         except:  # pragma: NO COVER
             # TODO: Handle all the errors and handle them well.
             logger.error("Don't swallow my exceptions", exc_info=True)
