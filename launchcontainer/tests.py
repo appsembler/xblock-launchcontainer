@@ -12,8 +12,7 @@ from opaque_keys.edx.locations import Location, SlashSeparatedCourseKey
 
 from django.test import override_settings
 
-from .launchcontainer import DEFAULT_WHARF_URL
-
+from .launchcontainer import DEFAULT_WHARF_URL, STATIC_FILES
 
 WHARF_ENDPOINT_GOOD = "https://api.org.com"
 WHARF_ENDPOINT_BAD = "notARealUrl"
@@ -83,11 +82,10 @@ class LaunchContainerXBlockTests(unittest.TestCase):
 
         # Confirm that the template was rendered properly.
         template_arg = render_template.call_args_list[0][0][0]
-        self.assertEqual(
-            template_arg,
-            'static/html/launchcontainer.html'
-        )
+        self.assertEqual(template_arg, STATIC_FILES['student']['template'])
         context = render_template.call_args_list[0][0][1]
+
+        # Confirm that the context was correct.
         self.assertEqual(context['project'], 'Foo project')
         self.assertEqual(context['project_friendly'], 'Foo Project Friendly Name')
         self.assertEqual(context['project_token'], 'Foo token')
@@ -96,20 +94,12 @@ class LaunchContainerXBlockTests(unittest.TestCase):
 
         # Confirm that the css was included.
         css_template_arg = render_template.call_args_list[1][0][0]
-        self.assertEqual(
-            css_template_arg,
-            'static/css/launchcontainer.css'
-        )
+        self.assertEqual(css_template_arg, STATIC_FILES['student']['css'])
 
         # Confirm that the JavaScript was included.
         javascript_template_arg = render_template.call_args_list[2][0][0]
-        self.assertEqual(
-            javascript_template_arg,
-            'static/js/src/launchcontainer.js'
-        )
-        fragment.initialize_js.assert_called_once_with(
-            "LaunchContainerXBlock"
-        )
+        self.assertEqual(javascript_template_arg, STATIC_FILES['student']['js'])
+        fragment.initialize_js.assert_called_once_with(STATIC_FILES['student']['js_class'])
 
     @mock.patch('launchcontainer.launchcontainer.load_resource', DummyResource)
     @mock.patch('launchcontainer.launchcontainer.render_template')
@@ -123,13 +113,11 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         fragment = block.studio_view()
 
         # Called once for the template, once for the css.
-        self.assertEqual(render_template.call_count, 2)
+        self.assertEqual(render_template.call_count, 3)
 
         # Confirm that the rendered template is the right one.
-        self.assertEqual(
-            render_template.call_args_list[0][0][0],
-            'static/html/launchcontainer_edit.html'
-        )
+        self.assertEqual(render_template.call_args_list[0][0][0],
+                         STATIC_FILES['studio']['template'])
 
         # Confirm that the context was set properly on the XBlock instance.
         cls = type(block)
@@ -142,22 +130,18 @@ class LaunchContainerXBlockTests(unittest.TestCase):
 
         # Confirm that the JavaScript was pulled in.
         fragment.add_javascript.assert_called_once_with(
-            DummyResource("static/js/src/launchcontainer_edit.js"))
-        fragment.initialize_js.assert_called_once_with(
-            "LaunchContainerEditBlock")
+            render_template(DummyResource(STATIC_FILES['studio']['js']))
+        )
+
+        fragment.initialize_js.assert_called_once_with(STATIC_FILES['studio']['js_class'])
 
         # Confirm that the css was pulled in.
         fragment.add_css.assert_called_once_with(
-            render_template(
-                DummyResource("static/js/src/launchcontainer_edit.css")
-            )
+            render_template(DummyResource(STATIC_FILES['studio']['css']))
         )
 
         css_template_arg = render_template.call_args_list[1][0][0]
-        self.assertEqual(
-            css_template_arg,
-            'static/css/launchcontainer_edit.css'
-        )
+        self.assertEqual(css_template_arg, STATIC_FILES['studio']['css'])
 
     def test_save_launchcontainer(self):
         """
