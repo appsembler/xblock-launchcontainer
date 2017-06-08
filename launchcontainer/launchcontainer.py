@@ -12,7 +12,7 @@ from django.core import validators
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String
-from web_fragments.fragment import Fragment
+from xblock.fragment import Fragment
 
 try:
     from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
