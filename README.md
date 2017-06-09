@@ -227,6 +227,23 @@ Edit the *lms.env.json* file via `sudo nano /edx/app/edxapp/lms.env.json`  by ad
 ...
 ```
 
+#### Add some logging 
+
+XBlock launchcontainer will write debug level logs to `launchcontainer.launchcontainer`. Here is an example configuration:
+
+```
+LOGGING['loggers'].update({
+    'launchcontainer.launchcontainer': {
+        'handlers': ['console', 'local'],
+        'level': 'DEBUG',
+        'propagate': True
+        },
+})
+
+LOGGING['handlers']['console']['level'] = 'DEBUG'
+```
+                                                                                ```
+
 #### Restart the vagrant VM 
 
 ``` 

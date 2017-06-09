@@ -16,8 +16,15 @@ from xblock.fragment import Fragment
 
 try:
     from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
+    from openedx.core.djangoapps.site_configuration.helpers import (
+        is_site_configuration_enabled
+    )
+    from openedx.core.djangoapps.theming.helpers import get_current_site
 except ImportError:  # We're not in an openedx environment.
+    IS_OPENEDX_ENVIRON = False
     siteconfig_helpers = None
+else:
+    IS_OPENEDX_ENVIRON = True
 
 
 logger = logging.getLogger(__name__)
@@ -127,6 +134,11 @@ class LaunchContainerXBlock(XBlock):
                 return True
 
         logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
+        if IS_OPENEDX_ENVIRON:
+            logger.debug("Current site: {}".format(get_current_site()))
+            logger.debug("Current site config enabled: {}".format(is_site_configuration_enabled()))
+            logger.debug("Current site config LAUNCHCONTAINER_WHARF_URL: {}".format(
+                siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')))
 
         return next((x[1] for x in urls if is_valid(x[1])))
 
