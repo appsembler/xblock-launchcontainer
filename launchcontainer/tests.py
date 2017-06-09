@@ -200,7 +200,6 @@ class LaunchContainerXBlockTests(unittest.TestCase):
     def test_failed_url_logging(self, config_helpers, mock_logger):
         """The urls should always be logged to debug."""
 
-        #: Mock the SiteConfig module
         config_helpers.get_value.return_value = WHARF_ENDPOINT_BAD
         block = self.make_one()
 
