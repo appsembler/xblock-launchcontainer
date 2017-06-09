@@ -90,7 +90,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         self.assertEqual(context['project_friendly'], 'Foo Project Friendly Name')
         self.assertEqual(context['project_token'], 'Foo token')
         self.assertEqual(context['user_email'], block.runtime.service().get_current_user().email)
-        self.assertEqual(context['API_url'], block._wharf_endpoint)
+        self.assertEqual(context['API_url'], block.wharf_url)
 
         # Confirm that the css was included.
         css_template_arg = render_template.call_args_list[1][0][0]
@@ -169,8 +169,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
 
         with override_settings(ENV_TOKENS=ENV_TOKENS):
             block = self.make_one()
-            block.wharf_url
-            self.assertEqual(block._wharf_endpoint, WHARF_ENDPOINT_GOOD)
+            self.assertEqual(block.wharf_url, WHARF_ENDPOINT_GOOD)
 
     def test_api_url_default_fallback(self):
         """
@@ -182,8 +181,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
 
         with override_settings(ENV_TOKENS=ENV_TOKENS):
             block = self.make_one()
-            block.wharf_url
-            self.assertEqual(block._wharf_endpoint, DEFAULT_WHARF_URL)
+            self.assertEqual(block.wharf_url, DEFAULT_WHARF_URL)
 
     def test_api_url_not_set(self):
         """
@@ -195,5 +193,17 @@ class LaunchContainerXBlockTests(unittest.TestCase):
 
         with override_settings(ENV_TOKENS=ENV_TOKENS):
             block = self.make_one()
-            block.wharf_url
-            self.assertEqual(block._wharf_endpoint, DEFAULT_WHARF_URL)
+            self.assertEqual(block.wharf_url, DEFAULT_WHARF_URL)
+
+    @mock.patch('launchcontainer.launchcontainer.logger')
+    @mock.patch('launchcontainer.launchcontainer.siteconfig_helpers')
+    def test_failed_url_logging(self, config_helpers, mock_logger):
+        """The urls should always be logged to debug."""
+
+        #: Mock the SiteConfig module
+        config_helpers.get_value.return_value = WHARF_ENDPOINT_BAD
+        block = self.make_one()
+
+        block.wharf_url
+
+        self.assertEqual(mock_logger.debug.call_count, 1)

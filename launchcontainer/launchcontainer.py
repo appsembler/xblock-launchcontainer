@@ -39,23 +39,6 @@ STATIC_FILES = {
 }
 
 
-class URL(object):
-
-    def __init__(self, url_string):
-        self.url_string = url_string
-        self.validator = validators.URLValidator()
-
-    def is_valid(self):
-        """Return True if the url is valid."""
-
-        try:
-            self.validator(self.url_string)
-        except validators.ValidationError:
-            return False
-        else:
-            return True
-
-
 def _add_static(fragment, type, context):
     """Add the staticfiles to the fragment, where `type` is either student or studio,
     and `context` is a dict that will be passed to the render_template function."""
@@ -105,26 +88,46 @@ class LaunchContainerXBlock(XBlock):
 
     @property
     def wharf_url(self, force=False):
-        # TODO: logger.debug the failed validations.
         site_wharf_url = None
         if siteconfig_helpers:
             site_wharf_url = siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')
+
         urls = (
             # A SiteConfig object: this is the preferred implementation.
-            site_wharf_url,
-            # TODO: Maybe we can set up a signal to update this value if
-            # a SiteConfig object is changed.
+            (
+                'SiteConfig', site_wharf_url
+            ),
+            # TODO: Maybe we can cache this and set up a signal
+            # to update this value if a SiteConfig object is changed.
             # A string: the currently supported implementation.
-            settings.ENV_TOKENS.get('LAUNCHCONTAINER_WHARF_URL'),
+            (
+                "ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL']",
+                settings.ENV_TOKENS.get('LAUNCHCONTAINER_WHARF_URL')
+            ),
             # A dict: the deprecated version.
-            settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default'),
+            (
+                "ENV_TOKENS['LAUNCHCONTAINER_API_CONF']",
+                settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default')
+            ),
             # Fallback to the default.
-            DEFAULT_WHARF_URL
+            (
+                "Default", DEFAULT_WHARF_URL
+            )
         )
 
-        self._wharf_endpoint = next((x for x in urls if URL(x).is_valid()))
+        validator = validators.URLValidator()
 
-        return self._wharf_endpoint
+        def is_valid(url):
+            try:
+                validator(url)
+            except validators.ValidationError:
+                return False
+            else:
+                return True
+
+        logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
+
+        return next((x[1] for x in urls if is_valid(x[1])))
 
     def student_view(self, context=None):
         """
