@@ -1,6 +1,6 @@
 """This XBlock provides an HTML page fragment to display a button
-   allowing the Course user to launch an external course Container
-   via Appsembler's Container deploy API.
+   allowing the course user to launch an external course container
+   via Appsembler Virtual Labs (AVL or "Wharf").
 """
 
 import pkg_resources
@@ -98,14 +98,17 @@ class LaunchContainerXBlock(XBlock):
         display_name='Project Token',
         default=u'',
         scope=Scope.content,
-        help=(u"This is a unique token that can be found in the Appsembler "
-              "Virtual Labs dashboard.")
+        help=(u"This is a unique token that can be found in the AVL dashboard")
     )
 
     @property
     def wharf_url(self, force=False):
         site_wharf_url = None
-        url = cache.get(make_cache_key(get_current_site()))  # get_current_site is Site.domain.
+
+        try:
+            url = cache.get(make_cache_key(get_current_site()))  # get_current_site is Site.domain.
+        except NameError:  # Not in an openedx environ.
+            url = None
 
         if not url:
             if siteconfig_helpers:
@@ -154,7 +157,11 @@ class LaunchContainerXBlock(XBlock):
                     siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')))
 
             url = next((x[1] for x in urls if is_valid(x[1])))
-            cache.set(make_cache_key(get_current_site()), url, CACHE_KEY_TIMEOUT)
+
+            try:
+                cache.set(make_cache_key(get_current_site()), url, CACHE_KEY_TIMEOUT)
+            except NameError:
+                pass
 
         return url
 
@@ -277,4 +284,5 @@ def update_wharf_url_cache(sender, **kwargs):
         # to fall back to one of the other methods of storing the URL.
         cache.delete(make_cache_key(instance.site.domain))
 
-post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
+if IS_OPENEDX_ENVIRON:
+    post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
