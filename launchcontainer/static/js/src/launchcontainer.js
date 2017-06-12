@@ -56,7 +56,6 @@ function LaunchContainerXBlock(runtime, element) {
           if ($status_code === 400) {
             var $errors = event.data.errors;
             for (i=0; i<$errors.length; i++) { 
-              # TODO: Make this error display better.
               $msg = $errors[i][0] + ": " + $errors[i][1][0] + " "; 
             }
           } else if ($status_code === 403) {
