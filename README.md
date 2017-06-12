@@ -23,6 +23,16 @@ cd xblock-sdk
 virtualenv .
 ```
 
+#### 2.b: Update the version of XBlock 
+
+The sdk probably has a version of XBlock that is ahead of us. Check setup.py 
+to see what version we're on, then edit the xblock-sdk's `requirements/base.txt` to 
+match. Then go run setup.py in the XBlock directory: 
+
+``` 
+python setup.py develop
+```
+
 ### Step 3: Install this package in "editable mode"
 
 Append this package to your `xblock-sdk/requirements/base.txt`:
