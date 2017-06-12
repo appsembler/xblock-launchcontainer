@@ -1,5 +1,24 @@
 <div id="launcher1">
   <iframe src="{{ API_url }}" style="visibility: hidden" width="0" height="0"></iframe>
+
+  <div class="alert alert-error" role="alert" aria-labelledby="alert-title-error">
+    <span class="icon alert-icon fa fa-warning" aria-hidden="true"></span>
+
+    <div class="alert-message-with-action">
+      <h3 class="sr-only alert-title" id="alert-title-error">
+        Unable to load chart.
+      </h3>
+
+      <p class="alert-copy">
+      We are unable to load this chart.
+      </p>
+    </div>
+
+    <button type="button" class="alert-action btn-neutral btn">
+      Read More <span class="sr-only">about charts</span>
+    </button>
+  </div>
+
   <form id="launcher_form">
     <input type="text" class="hide" id="launcher_email" name="owner_email" {% if user_email %}value="{{ user_email }}"{% endif %} placeholder="Please enter your email address" />
     <input type="text" class="hide" id="launcher_project" name="project" value="{{ project }}" />

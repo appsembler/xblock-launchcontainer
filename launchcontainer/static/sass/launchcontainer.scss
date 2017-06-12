@@ -1,0 +1,26 @@
+@import 'edx-pattern-library/pattern-library/sass/edx-pattern-library-ltr';
+
+
+.hide {
+  display: none;
+}
+
+.wraptext {
+  display: block;
+  white-space: normal !important;
+  padding: 5px;
+}
+
+div#launcher_notification {
+  padding: 10px;
+  margin: 10px 0;
+  display: inline-block;
+}
+
+div#launcher_notification p {
+  margin-bottom: 0;
+}
+
+#launcher_submit {
+  padding: 10px;
+}

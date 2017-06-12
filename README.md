@@ -49,6 +49,16 @@ Install the packages:
 $ PYTHONPATH=$(pwd)/lib/python2.7/site-packages pip install --install-option="--prefix=$(pwd)" -r requirements/base.txt
 ```
 
+### Step 3a: Install then node modules 
+
+``` 
+npm install gulp
+```
+
+``` 
+npm install
+```
+
 ### Step 4: Start the xblock-sdk server 
 
 ``` 

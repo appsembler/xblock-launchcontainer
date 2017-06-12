@@ -1,0 +1,23 @@
+{
+  "name": "launchcontainer",
+  "version": "1.1.5",
+  "description": "This is for the dev stuff, y'all.",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "edx-pattern-library": "^0.18.1",
+    "font-awesome": "^4.7.0",
+    "gulp": "^3.9.1",
+    "gulp-autoprefixer": "^4.0.0",
+    "gulp-sass": "^3.1.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/appsembler/xblock-launchcontainer/"
+  },
+  "author": "Brian Dant",
+  "license": "ISC"
+}
