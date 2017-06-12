@@ -20,7 +20,7 @@ function LaunchContainerXBlock(runtime, element) {
           $waiting = 'Your request for a lab is being processed, and may take up to 90 seconds to start. '
           + 'If you are having issues, please contact the administrator.'
 
-      // This is for studio: If there is no email addy, 
+      // This is for the xblock-sdk: If there is no email addy, 
       // you can enter it manually.
       if (!$launcher_email.val()) {
         $launcher_email.removeClass('hide');
