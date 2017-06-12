@@ -31,12 +31,13 @@ function LaunchContainerXBlock(runtime, element) {
         // Shut down the buttons.
         event.preventDefault();
         $launcher_submit.disabled = true; 
-        $launcher_submit.val('Launching ...');
+        $launcher_submit.text('Launching ...');
         $launch_notification.html($waiting);
         $launch_notification.removeClass('hide')
                             .removeClass('ui-state-error')
                             .removeClass('ui-state-notification');
-        $launcher.find('iframe')[0].contentWindow.postMessage($(this).serialize(), "{{ API_url|escapejs }}");
+        $launch_iframe = $launcher.find('iframe')[0];
+        $launch_iframe.contentWindow.postMessage($(this).serialize(), "{{ API_url|escapejs }}");
         return false;
       });
 
@@ -46,6 +47,8 @@ function LaunchContainerXBlock(runtime, element) {
           $launch_notification.removeClass('hide')
                               .removeClass('ui-state-error')
                               .html(event.data.html_content);
+          // The inner iframe takes care of posting the message, 
+          // so we just need to hide the form.
           $launcher_form.addClass('hide');
         } else if(event.data.status === 'deploymentError') {
           var $status_code = event.data.status_code;
