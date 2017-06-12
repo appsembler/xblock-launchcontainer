@@ -60,7 +60,7 @@ def _add_static(fragment, type, context):
     and `context` is a dict that will be passed to the render_template function."""
     fragment.add_content(render_template(STATIC_FILES[type]['template'], context))
     fragment.add_css(render_template(STATIC_FILES[type]['css'], context))
-    fragment.add_javascript(render_template(STATIC_FILES[type]['js']))
+    fragment.add_javascript(render_template(STATIC_FILES[type]['js'], context))
     fragment.initialize_js(STATIC_FILES[type]['js_class'])
 
     return fragment
