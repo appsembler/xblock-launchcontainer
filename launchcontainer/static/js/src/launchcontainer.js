@@ -18,7 +18,7 @@ function LaunchContainerXBlock(runtime, element) {
           $launcher_email = $('#launcher_email'),
           $launch_notification = $('#launcher_notification'), 
           $waiting = 'Your request for a lab is being processed, and may take up to 90 seconds to start. '
-          + 'If you are having issues, please <a href="mailto:technical@appsembler.com">notify us</a>.'
+          + 'If you are having issues, please contact the administrator.'
 
       // This is for studio: If there is no email addy, 
       // you can enter it manually.
@@ -67,9 +67,7 @@ function LaunchContainerXBlock(runtime, element) {
             $msg = event.data.errors + " ";
           }
           var $final_msg = "<p class='error'>An error occured in your request: " + $msg + "</p>" 
-                           + "<p> Please contact "
-                           +"<a href=mailto:technical@appsembler.com>the "
-                           +"administrator.</p>";
+                           + "<p> Please contact the administrator.</p>";
           $launch_notification.html($final_msg);
           $launch_notification.addClass('ui-state-error').removeClass('hide');
         }
