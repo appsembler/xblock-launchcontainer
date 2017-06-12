@@ -38,7 +38,7 @@ function LaunchContainerEditBlock(runtime, element) {
             'project_token': $('#project_token_input').val(),
         };
 
-        $.post(handlerUrl, data)
+        $.post(handlerUrl, JSON.stringify(data))
           .done(function(response) { 
               notify(response);
         });
