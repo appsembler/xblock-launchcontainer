@@ -227,6 +227,23 @@ Edit the *lms.env.json* file via `sudo nano /edx/app/edxapp/lms.env.json`  by ad
 ...
 ```
 
+#### Add some logging 
+
+XBlock launchcontainer will write debug level logs to `launchcontainer.launchcontainer`. Here is an example configuration:
+
+```
+LOGGING['loggers'].update({
+    'launchcontainer.launchcontainer': {
+        'handlers': ['console', 'local'],
+        'level': 'DEBUG',
+        'propagate': True
+        },
+})
+
+LOGGING['handlers']['console']['level'] = 'DEBUG'
+```
+                                                                                ```
+
 #### Restart the vagrant VM 
 
 ``` 
@@ -295,11 +312,21 @@ and
 * In Studio, navigate to a Course, and select 'Advanced Settings' underneath the 
 'Settings' dropdown menu.
 * Under  'Advanced Module List' add 
+
 ```
 ["launchcontainer"] to the list of advanced modules
 ```
+
 * Return to the Course Outline
 * Create a Section, Sub-section and Unit, if you haven’t already
 * In the “Add New Component” interface, you should now see an “Advanced” button
 * Click “Advanced” and choose “launchcontainer”
 * Follow the instructions above for setting up microsites
+
+# Configuration 
+
+You will always have an AVL cluster associated with this XBlock. It can be set in several ways, with the preferred method being the 'SiteConfiguration` via the Django sites framework. You can also configure an instance-wide (i.e., across the entire edX instance) by setting an edX environment variable of `LAUNCHCONTAINER_WHARF_URL=http://your.url.com/your/endpoint/`, such that it will be available in ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL']. 
+
+To use the preferred method, modify the `SiteConfiguration` object associated with your `Site` to include `LAUNCHCONTAINER_WHARF_URL=http://your.url.com/your/endpoint/` in the `values` dict. (Also ensure that the site has been enabled via the `enabled` flag in the admin.
+
+This variable is cached, and the cache will be updated when the `SiteConfiguration` is changed.

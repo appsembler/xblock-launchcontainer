@@ -7,8 +7,10 @@ import pkg_resources
 import logging
 
 from django.conf import settings
-from django.template import Context, Template
 from django.core import validators
+from django.core.cache import cache
+from django.db.models.signals import post_save
+from django.template import Context, Template
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String
@@ -16,12 +18,22 @@ from xblock.fragment import Fragment
 
 try:
     from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
+    from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
+    from openedx.core.djangoapps.site_configuration.helpers import (
+        is_site_configuration_enabled
+    )
+    from openedx.core.djangoapps.theming.helpers import get_current_site
 except ImportError:  # We're not in an openedx environment.
+    IS_OPENEDX_ENVIRON = False
     siteconfig_helpers = None
+else:
+    IS_OPENEDX_ENVIRON = True
 
 
 logger = logging.getLogger(__name__)
 
+WHARF_URL_KEY = 'LAUNCHCONTAINER_WHARF_URL'
+CACHE_KEY_TIMEOUT = 60 * 60 * 72  # 72 hours.
 DEFAULT_WHARF_URL = 'https://wharf.appsembler.com/isc/newdeploy'
 STATIC_FILES = {
     'studio': {
@@ -39,21 +51,8 @@ STATIC_FILES = {
 }
 
 
-class URL(object):
-
-    def __init__(self, url_string):
-        self.url_string = url_string
-        self.validator = validators.URLValidator()
-
-    def is_valid(self):
-        """Return True if the url is valid."""
-
-        try:
-            self.validator(self.url_string)
-        except validators.ValidationError:
-            return False
-        else:
-            return True
+def make_cache_key(site_domain):
+    return '{}.{}.'.format('launchcontainer_wharf_url', site_domain)
 
 
 def _add_static(fragment, type, context):
@@ -106,26 +105,59 @@ class LaunchContainerXBlock(XBlock):
 
     @property
     def wharf_url(self, force=False):
-        # TODO: logger.debug the failed validations.
         site_wharf_url = None
-        if siteconfig_helpers:
-            site_wharf_url = siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')
-        urls = (
-            # A SiteConfig object: this is the preferred implementation.
-            site_wharf_url,
-            # TODO: Maybe we can set up a signal to update this value if
-            # a SiteConfig object is changed.
-            # A string: the currently supported implementation.
-            settings.ENV_TOKENS.get('LAUNCHCONTAINER_WHARF_URL'),
-            # A dict: the deprecated version.
-            settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default'),
-            # Fallback to the default.
-            DEFAULT_WHARF_URL
-        )
+        url = cache.get(make_cache_key(get_current_site()))  # get_current_site is Site.domain.
 
-        self._wharf_endpoint = next((x for x in urls if URL(x).is_valid()))
+        if not url:
+            if siteconfig_helpers:
+                site_wharf_url = siteconfig_helpers.get_value(WHARF_URL_KEY)
 
-        return self._wharf_endpoint
+            urls = (
+                # A SiteConfig object: this is the preferred implementation.
+                (
+                    'SiteConfiguration', site_wharf_url
+                ),
+                # TODO: Maybe we can cache this and set up a signal
+                # to update this value if a SiteConfig object is changed.
+                # A string: the currently supported implementation.
+                (
+                    "ENV_TOKENS[{}]".format(WHARF_URL_KEY),
+                    settings.ENV_TOKENS.get(WHARF_URL_KEY)
+                ),
+                # A dict: the deprecated version.
+                (
+                    "ENV_TOKENS['LAUNCHCONTAINER_API_CONF']",
+                    settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default')
+                ),
+                # Fallback to the default.
+                (
+                    "Default", DEFAULT_WHARF_URL
+                )
+            )
+
+            validator = validators.URLValidator()
+
+            def is_valid(url):
+                try:
+                    validator(url)
+                except validators.ValidationError:
+                    return False
+                else:
+                    return True
+
+            logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
+            if IS_OPENEDX_ENVIRON:
+                logger.debug("Current site: {}".format(get_current_site()))
+                logger.debug("Current site config enabled: {}".format(
+                    is_site_configuration_enabled())
+                )
+                logger.debug("Current site config LAUNCHCONTAINER_WHARF_URL: {}".format(
+                    siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')))
+
+            url = next((x[1] for x in urls if is_valid(x[1])))
+            cache.set(make_cache_key(get_current_site()), url, CACHE_KEY_TIMEOUT)
+
+        return url
 
     def student_view(self, context=None):
         """
@@ -227,3 +259,23 @@ def render_template(template_path, context=None):  # pragma: NO COVER
     template = Template(template_str)
 
     return template.render(Context(context))
+
+
+def update_wharf_url_cache(sender, **kwargs):
+    """
+    Receiver that will update the cache item that contains
+    this site's WHARF_URL_KEY.
+    """
+    instance = kwargs['instance']
+    new_key = instance.values.get(WHARF_URL_KEY)
+    if new_key:
+        cache.set(make_cache_key(instance.site.domain),
+                  instance.values.get(WHARF_URL_KEY),
+                  CACHE_KEY_TIMEOUT
+                  )
+    else:
+        # Delete the key in the off chance that the user is trying
+        # to fall back to one of the other methods of storing the URL.
+        cache.delete(make_cache_key(instance.site.domain))
+
+post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
