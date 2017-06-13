@@ -7,6 +7,7 @@ import pkg_resources
 import logging
 
 from django.conf import settings
+from django.contrib.sites.models import Site
 from django.core import validators
 from django.core.cache import cache
 from django.db.models.signals import post_save
@@ -104,65 +105,80 @@ class LaunchContainerXBlock(XBlock):
 
     @property
     def wharf_url(self, force=False):
+        """Determine which site we're on, then get the Wharf URL that said
+        site has configured."""
         site_wharf_url = None
 
+        # If we are in Tahoe studio, the Site object associated with this request
+        # will not be the Site associated with the user's "microsite" within Tahoe.
+        # To remedy this, we need to rely on the organization.
+        # If this does not work, it's possible that get_current_site() below
+        # will get the incorrect site, which should not contain a WHARF_URL_KEY,
+        # thereby causing this code to Fallback to the DEFAULT_WHARF_URL.
+        # TODO: Can we hook into edX's RequestCache? See: https://git.io/vH7Zf
+        edx_site_domain = "{}.{}".format(self.course_id.org, settings.LMS_BASE)
         try:
-            url = cache.get(make_cache_key(get_current_site()))  # get_current_site is Site.domain.
-        except NameError:  # Not in an openedx environ.
-            url = None
+            site = Site.objects.get(domain=edx_site_domain)
+        except Site.DoesNotExist:
+            site = get_current_site()  # From the request.
+        else:
+            site = site.domain
 
-        if not url:
-            if siteconfig_helpers:
-                site_wharf_url = siteconfig_helpers.get_value(WHARF_URL_KEY)
+        url = cache.get(make_cache_key(site))
 
-            urls = (
-                # A SiteConfig object: this is the preferred implementation.
-                (
-                    'SiteConfiguration', site_wharf_url
-                ),
-                # TODO: Maybe we can cache this and set up a signal
-                # to update this value if a SiteConfig object is changed.
-                # A string: the currently supported implementation.
-                (
-                    "ENV_TOKENS[{}]".format(WHARF_URL_KEY),
-                    settings.ENV_TOKENS.get(WHARF_URL_KEY)
-                ),
-                # A dict: the deprecated version.
-                (
-                    "ENV_TOKENS['LAUNCHCONTAINER_API_CONF']",
-                    settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default')
-                ),
-                # Fallback to the default.
-                (
-                    "Default", DEFAULT_WHARF_URL
-                )
+        if url:
+            return url
+        elif not url and site.configuration:
+            site_wharf_url = site.configuration.get_value(WHARF_URL_KEY)
+        elif not url and siteconfig_helpers:
+            site_wharf_url = siteconfig_helpers.get_value(WHARF_URL_KEY)
+
+        # Nothing in the cache. Go find the URL.
+        urls = (
+            # A SiteConfig object: this is the preferred implementation.
+            (
+                'SiteConfiguration', site_wharf_url
+            ),
+            # TODO: Maybe we can cache this and set up a signal
+            # to update this value if a SiteConfig object is changed.
+            # A string: the currently supported implementation.
+            (
+                "ENV_TOKENS[{}]".format(WHARF_URL_KEY),
+                settings.ENV_TOKENS.get(WHARF_URL_KEY)
+            ),
+            # A dict: the deprecated version.
+            (
+                "ENV_TOKENS['LAUNCHCONTAINER_API_CONF']",
+                settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default')
+            ),
+            # Fallback to the default.
+            (
+                "Default", DEFAULT_WHARF_URL
             )
+        )
 
-            validator = validators.URLValidator()
+        validator = validators.URLValidator()
 
-            def is_valid(url):
-                try:
-                    validator(url)
-                except validators.ValidationError:
-                    return False
-                else:
-                    return True
-
-            logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
-            if IS_OPENEDX_ENVIRON:
-                logger.debug("Current site: {}".format(get_current_site()))
-                logger.debug("Current site config enabled: {}".format(
-                    is_site_configuration_enabled())
-                )
-                logger.debug("Current site config LAUNCHCONTAINER_WHARF_URL: {}".format(
-                    siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')))
-
-            url = next((x[1] for x in urls if is_valid(x[1])))
-
+        def is_valid(url):
             try:
-                cache.set(make_cache_key(get_current_site()), url, CACHE_KEY_TIMEOUT)
-            except NameError:
-                pass
+                validator(url)
+            except validators.ValidationError:
+                return False
+            else:
+                return True
+
+        logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
+        if IS_OPENEDX_ENVIRON:
+            logger.debug("Current site: {}".format(get_current_site()))
+            logger.debug("Current site config enabled: {}".format(
+                is_site_configuration_enabled())
+            )
+            logger.debug("Current site config LAUNCHCONTAINER_WHARF_URL: {}".format(
+                siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')))
+
+        url = next((x[1] for x in urls if is_valid(x[1])))
+
+        cache.set(make_cache_key(site), url, CACHE_KEY_TIMEOUT)
 
         return url
 
