@@ -165,21 +165,28 @@ class LaunchContainerXBlock(XBlock):
 
         return url
 
-    def student_view(self, context=None):
-        """
-        The primary view of the LaunchContainerXBlock, shown to students
-        when viewing courses.
-        """
+    # TODO: Cache this property?
+    @property
+    def user_email(self):
+
         user_email = None
         user_service = self.runtime.service(self, 'user')
         user = user_service.get_current_user()
         user_email = user.emails[0] if type(user.emails) == list else user.email
 
+        return user_email
+
+    def student_view(self, context=None):
+        """
+        The primary view of the LaunchContainerXBlock, shown to students
+        when viewing courses.
+        """
+
         context = {
             'project': self.project,
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
-            'user_email': user_email,
+            'user_email': self.user_email,
             'API_url': self.wharf_url
         }
 
@@ -207,7 +214,10 @@ class LaunchContainerXBlock(XBlock):
                )
             )
 
-            context = {'fields': edit_fields, 'API_url': self.wharf_url}
+            context = {'fields': edit_fields,
+                       'API_url': self.wharf_url,
+                       'user_email': self.user_email
+                       }
 
             return _add_static(Fragment(), 'studio', context)
 
