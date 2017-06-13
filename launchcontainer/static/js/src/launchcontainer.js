@@ -37,7 +37,12 @@ function LaunchContainerXBlock(runtime, element) {
                             .removeClass('ui-state-error')
                             .removeClass('ui-state-notification');
         $launch_iframe = $launcher.find('iframe')[0];
-        $launch_iframe.contentWindow.postMessage($(this).serialize(), "{{ API_url|escapejs }}");
+        $launch_iframe.contentWindow.postMessage({
+          'project': "{{ project|escapejs }}",
+          'owner_email': "{{ user_email|escapejs }}",
+          'token': "{{ project_token|escapejs }}"
+          }, "{{ API_url|escapejs }}"
+        );
         return false;
       });
 
