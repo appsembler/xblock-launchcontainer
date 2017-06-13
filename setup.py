@@ -22,7 +22,7 @@ def package_data(pkg, roots):
 
 setup(
     name='xblock-launchcontainer',
-    version='1.1.6',
+    version='1.1.7',
     author='Bryan Wilson, Jazkarta',
     description=('Open EdX XBlock to display a button allowing an LMS user '
                  'to launch and link to an external courseware resource via the '
