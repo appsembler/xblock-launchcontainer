@@ -231,7 +231,7 @@ The code will find your URL in the following order:
 
 1) The SiteConfiguration object associated with your Site: `SiteConfiguration().values['LAUNCHCONTAINER_WHARF_URL']` (str)   
 2) The edX env var: `ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL']` (str)  
-3) [Deprecated]: `ENV_TOKENS['LAUNCHCONTAINER_API_CONF']['default']` (str)  
+3) \[Deprecated\]: `ENV_TOKENS['LAUNCHCONTAINER_API_CONF']['default']` (str)  
 4) Fall back to the value defined in `launchcontainer.py`
 
 *Note: This variable is cached, and the cache will be updated when the `SiteConfiguration` is changed.*
