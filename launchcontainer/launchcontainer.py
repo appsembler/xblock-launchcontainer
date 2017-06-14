@@ -56,6 +56,17 @@ def make_cache_key(site_domain):
     return '{}.{}.'.format('launchcontainer_wharf_url', site_domain)
 
 
+def is_valid(url):
+    """Return True if this URL is valid."""
+    validator = validators.URLValidator()
+    try:
+        validator(url)
+    except validators.ValidationError:
+        return False
+    else:
+        return True
+
+
 def _add_static(fragment, type, context):
     """Add the staticfiles to the fragment, where `type` is either student or studio,
     and `context` is a dict that will be passed to the render_template function."""
@@ -107,7 +118,6 @@ class LaunchContainerXBlock(XBlock):
     def wharf_url(self, force=False):
         """Determine which site we're on, then get the Wharf URL that said
         site has configured."""
-        site_wharf_url = None
 
         # If we are in Tahoe studio, the Site object associated with this request
         # will not be the Site associated with the user's "microsite" within Tahoe.
@@ -121,23 +131,24 @@ class LaunchContainerXBlock(XBlock):
             site = Site.objects.get(domain=edx_site_domain)
         except Site.DoesNotExist:
             site = get_current_site()  # From the request.
-        else:
-            site = site.domain
 
-        url = cache.get(make_cache_key(site))
-
+        url = cache.get(make_cache_key(site.domain))
         if url:
             return url
-        elif not url and site.configuration:
-            site_wharf_url = site.configuration.get_value(WHARF_URL_KEY)
-        elif not url and siteconfig_helpers:
-            site_wharf_url = siteconfig_helpers.get_value(WHARF_URL_KEY)
 
         # Nothing in the cache. Go find the URL.
+        site_wharf_url = None
+        if hasattr(site, 'configuration'):
+            site_wharf_url = site.configuration.get_value(WHARF_URL_KEY)
+        else:
+            # Rely on edX's helper, which will fall back to the microsites app.
+            site_wharf_url = siteconfig_helpers.get_value(WHARF_URL_KEY)
+
         urls = (
             # A SiteConfig object: this is the preferred implementation.
             (
-                'SiteConfiguration', site_wharf_url
+                'SiteConfiguration',
+                site_wharf_url
             ),
             # TODO: Maybe we can cache this and set up a signal
             # to update this value if a SiteConfig object is changed.
@@ -157,15 +168,13 @@ class LaunchContainerXBlock(XBlock):
             )
         )
 
-        validator = validators.URLValidator()
+        url = next((x[1] for x in urls if is_valid(x[1])))
+        if not url:
+            raise AssertionError("You must set a valid url for the launchcontainer XBlock. "
+                                 "URLs attempted: {}".format(urls)
+                                 )
 
-        def is_valid(url):
-            try:
-                validator(url)
-            except validators.ValidationError:
-                return False
-            else:
-                return True
+        cache.set(make_cache_key(site), url, CACHE_KEY_TIMEOUT)
 
         logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
         if IS_OPENEDX_ENVIRON:
@@ -175,10 +184,6 @@ class LaunchContainerXBlock(XBlock):
             )
             logger.debug("Current site config LAUNCHCONTAINER_WHARF_URL: {}".format(
                 siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')))
-
-        url = next((x[1] for x in urls if is_valid(x[1])))
-
-        cache.set(make_cache_key(site), url, CACHE_KEY_TIMEOUT)
 
         return url
 
