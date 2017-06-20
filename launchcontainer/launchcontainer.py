@@ -126,14 +126,11 @@ class LaunchContainerXBlock(XBlock):
         # If this does not work, it's possible that get_current_site() below
         # will get the incorrect site, which should not contain a WHARF_URL_KEY,
         # thereby causing this code to Fallback to the DEFAULT_WHARF_URL.
-        # TODO: Can we hook into edX's RequestCache? See: https://git.io/vH7Zf
         try:
+            # TODO: Can we hook into edX's RequestCache? See: https://git.io/vH7Zf
             edx_site_domain = "{}.{}".format(self.course_id.org, settings.LMS_BASE)
-        except AttributeError:  # We're probably on the lms side: no settings.LMS_BASE.
-            edx_site_domain = None
-        try:
             site = Site.objects.get(domain=edx_site_domain)
-        except Site.DoesNotExist:
+        except (Site.DoesNotExist, AttributeError):  # Probably on the lms side.
             if get_current_site:
                 site = get_current_site()  # From the request.
             else:
