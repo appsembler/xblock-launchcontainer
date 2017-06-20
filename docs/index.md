@@ -62,7 +62,7 @@ python manage.py runserver 8002  # Use 8002 b/c devstack will take 8000 and 8001
 
 You should now see a "Single Launchcontainer" in the list of avaialable XBlocks:
 
-*TODO: Add LC screenshot*
+![Screenshot](img/05singleLaunchcontainer.png)
 
 ### Set up the Wharf machine and configure the XBlock to talk to it
 
@@ -218,29 +218,64 @@ and:
 ENV_TOKENS["FEATURES"].update({"ALLOW_ALL_ADVANCED_COMPONENTS": true}) 
 ``` 
 
+*If you have not properly set these variables, you will see an error to the effect of "launchcontainer" is not available.*
+
+### Configure the LAUNCHCONTAINER\_WHARF\_URL variable 
+
+Navigate to the Django Admin and locate the "Site Configuration" app, and find your site (if this is your initial installation, you'll probably be using the `example.com` site). Ensure that the `Enabled` box is checked, and then modify the `Values` dict to include a `LAUNCHCONTAINER_WHARF_URL` item: 
+
+``` 
+{
+  "LAUNCHCONTAINER_WHARF_URL":"virtuallabs.yourdomain.com/your/endpoint/"
+}
+```
+
+!!! Warning 
+
+    If you are on Tahoe, make sure that you are at `*tahoe.appsembler.com/admin/` and **not** `studio.*tahoe.appsembler.com/admin/.`
+
+!!! Note 
+
+    The URL shown in the XBlock edit interface (see below) is the one that the system will use. Please use this as a first step in verifying that you've entered the LAUNCHCONTAINER_WHARF_URL correctly.
+
+*Please see the "Configuration and Variable Precedence" section below for more options when setting this variable.*
+
 ## USAGE
 
-* In Studio, navigate to a Course, and select 'Advanced Settings' underneath the 
-'Settings' dropdown menu.
-* Under  'Advanced Module List' add `["launchcontainer"]` to the list of advanced modules
-* Return to the Course Outline
-* Create a Section, Sub-section and Unit, if you haven’t already
-* In the “Add New Component” interface, you should now see an “Advanced” button
-* Click “Advanced” and choose “Container Launcher"
-* Get a project name and token from Wharf, entering them into the appropriate fields 
+### Include the string "launchcontainer" in the "Advanced Modules List" for your course
+
+![Screenshot](img/01advancedSettings.png)
+
+### Add an instance of this XBlock from your unit
+
+Return to the Course Outline, create a Section, Sub-section and then a Unit. In the “Add New Component” interface, you should now see an “Advanced” button; click “Advanced” and choose “Container Launcher": 
+
+![Screenshot](img/02advancedButton.png)
+
+### Get the data from Wharf 
+
+Click the "Edit" button, and you'll see the scren below. You should navigate to your Wharf (AVL) interface, get the name of a project and the project token. Enter them into the appropriate fields. (The "Project Friendly" field is the name of the project to show to the end user.)
+
+**Wharf:**
+
+![Screenshot](img/03wharfName.png)
+
+**XBlock interface:**
+
+![Screenshot](img/04XBlockForm.png)
 
 *The [Open edX documentation on XBlock][xblock-usage] usage may also prove useful at this step.*
 
 ## CONFIGURATION AND VARIABLE PRECEDENCE
 
-You will always have an AVL cluster associated with this XBlock. It can be set in several ways, with the preferred method being the `SiteConfiguration` via the Django sites framework. You can also configure an instance-wide (i.e., across the entire edX instance) by setting an edX environment variable of `LAUNCHCONTAINER_WHARF_URL=http://your.url.com/your/endpoint/`, such that it will be available in `ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL']`. 
+You will always have an AVL cluster associated with this XBlock. It can be set in several ways, with the preferred method being the `SiteConfiguration` via Open edX's Site Configuration app (shown above). You can also configure an instance-wide (i.e., across the entire edX instance) by setting an edX environment variable of `LAUNCHCONTAINER_WHARF_URL=http://your.url.com/your/endpoint/`, such that it will be available in `ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL']`. 
 
 The code will find your URL in the following order: 
 
 1) The SiteConfiguration object associated with your Site: `SiteConfiguration().values['LAUNCHCONTAINER_WHARF_URL']` (str)   
 2) The edX env var: `ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL']` (str)  
 3) \[Deprecated\]: `ENV_TOKENS['LAUNCHCONTAINER_API_CONF']['default']` (str)  
-4) Fall back to the value defined in `launchcontainer.py`
+4) \[Soon to be deprecated\]: Fall back to the value defined in `launchcontainer.py`
 
 *Note: This variable is cached, and the cache will be updated when the `SiteConfiguration` is changed.*
 
