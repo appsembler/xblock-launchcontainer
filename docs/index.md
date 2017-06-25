@@ -235,3 +235,15 @@ The code will find your URL in the following order:
 4) Fall back to the value defined in `launchcontainer.py`
 
 *Note: This variable is cached, and the cache will be updated when the `SiteConfiguration` is changed.*
+
+# Testing
+
+To run the browser tests, execute these commands: 
+
+``` 
+$ pip install -r requirements/local.txt
+$ cd launchcontainer
+$ python -m unittest -v test_module
+```
+
+To run the Python unit tests, you'll need the xblock-sdk. If you followed the steps above to install it, you should be able to run `python manage.py test` from the root of your xblock-sdk.
