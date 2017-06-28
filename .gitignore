@@ -5,3 +5,4 @@
 /dist
 workbench.*
 node_modules/
+geckodriver.log
