@@ -23,12 +23,10 @@ function LaunchContainerEditBlock(runtime, element) {
             // Notify the user of success.
             // This is only available in the Appsembler fork of Open edX, though it 
             // will fail silently elsewhere.
-            runtime.notify('save-and-confirm', {
+            runtime.notify('show-saved-bar', {
               title: 'Success!',
               message: 'Your AVL project data has been saved. ' 
                 + 'Please click the launch button to test.', 
-              closeIcon: true, 
-              maxShown: 4000
             });
 
             } else {
