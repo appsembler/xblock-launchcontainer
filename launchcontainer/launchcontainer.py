@@ -120,19 +120,21 @@ class LaunchContainerXBlock(XBlock):
 
         # If we are in Tahoe studio, the Site object associated with this request
         # will not be the Site associated with the user's "microsite" within Tahoe.
-        # To remedy this, we need to rely on the organization.
-        # If this does not work, it's possible that get_current_site() below
-        # will get the incorrect site, which should not contain a WHARF_URL_KEY,
-        # thereby causing this code to Fallback to the DEFAULT_WHARF_URL.
-        # TODO: Can we hook into edX's RequestCache? See: https://git.io/vH7Zf
+        # To remedy this, we need to rely on the "organization" of the current course.
+        # However, if we are on the studio side, edX's get_current_site() helper
+        # will return the proper URL (and the sting assigned to edx_site_domain will
+        # not).
         try:
+            # TODO: Can we hook into edX's RequestCache? See: https://git.io/vH7Zf
             edx_site_domain = "{}.{}".format(self.course_id.org, settings.LMS_BASE)
-        except AttributeError:  # We're probably on the lms side: no settings.LMS_BASE.
-            edx_site_domain = None
-        try:
             site = Site.objects.get(domain=edx_site_domain)
-        except Site.DoesNotExist:
+        except (AttributeError, Site.DoesNotExist):  # We're probably on the lms side of Tahoe.
+            site = None
+
+        if not site and IS_OPENEDX_ENVIRON:
             site = get_current_site()  # From the request.
+        else:  # We're in the xblock-sdk.
+            site = Site.objects.all(order_by='domain').first()
 
         url = cache.get(make_cache_key(site.domain))
         if url:
@@ -261,7 +263,14 @@ class LaunchContainerXBlock(XBlock):
             self.project_token = data['project_token'].strip()
             self.api_url = self.wharf_url
 
-            return {'result': 'success'}
+            return {
+                'result': 'success',
+                'validated_data': {
+                        'project': self.project,
+                        'project_friendly': self.project_friendly,
+                        'project_token': self.project_token
+                }
+            }
 
         except Exception as e:
             return {'result': 'Error saving data:{0}'.format(str(e))}
