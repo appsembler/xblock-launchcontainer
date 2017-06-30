@@ -27,6 +27,8 @@ try:
 except ImportError:  # We're not in an openedx environment.
     IS_OPENEDX_ENVIRON = False
     siteconfig_helpers = None
+    is_site_configuration_enabled = None
+    get_current_site = None
 else:
     IS_OPENEDX_ENVIRON = True
 
@@ -132,7 +134,10 @@ class LaunchContainerXBlock(XBlock):
         try:
             site = Site.objects.get(domain=edx_site_domain)
         except Site.DoesNotExist:
-            site = get_current_site()  # From the request.
+            if get_current_site:
+                site = get_current_site()  # From the request.
+            else:
+                site = Site.objects.all().order_by('domain').first()  # We're in the xblock-sdk.
 
         url = cache.get(make_cache_key(site.domain))
         if url:
@@ -142,7 +147,7 @@ class LaunchContainerXBlock(XBlock):
         site_wharf_url = None
         if hasattr(site, 'configuration'):
             site_wharf_url = site.configuration.get_value(WHARF_URL_KEY)
-        else:
+        elif siteconfig_helpers:
             # Rely on edX's helper, which will fall back to the microsites app.
             site_wharf_url = siteconfig_helpers.get_value(WHARF_URL_KEY)
 
