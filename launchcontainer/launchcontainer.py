@@ -12,6 +12,7 @@ from django.core import validators
 from django.core.cache import cache
 from django.db.models.signals import post_save
 from django.template import Context, Template
+from django.core.exceptions import ImproperlyConfigured
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String
@@ -37,7 +38,6 @@ logger = logging.getLogger(__name__)
 
 WHARF_URL_KEY = 'LAUNCHCONTAINER_WHARF_URL'
 CACHE_KEY_TIMEOUT = 60 * 60 * 72  # 72 hours.
-DEFAULT_WHARF_URL = 'https://wharf.appsembler.com/isc/newdeploy'
 STATIC_FILES = {
     'studio': {
         'template': 'static/html/launchcontainer_edit.html',
@@ -157,8 +157,6 @@ class LaunchContainerXBlock(XBlock):
                 'SiteConfiguration',
                 site_wharf_url
             ),
-            # TODO: Maybe we can cache this and set up a signal
-            # to update this value if a SiteConfig object is changed.
             # A string: the currently supported implementation.
             (
                 "ENV_TOKENS[{}]".format(WHARF_URL_KEY),
@@ -169,13 +167,14 @@ class LaunchContainerXBlock(XBlock):
                 "ENV_TOKENS['LAUNCHCONTAINER_API_CONF']",
                 settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default')
             ),
-            # Fallback to the default.
-            (
-                "Default", DEFAULT_WHARF_URL
-            )
         )
 
-        url = next((x[1] for x in urls if is_valid(x[1])))
+        try:
+            url = next((x[1] for x in urls if is_valid(x[1])))
+        except StopIteration:
+            raise ImproperlyConfigured("No Virtual Labs URL was found, "
+                                       "please contact your site administrator.")
+
         if not url:
             raise AssertionError("You must set a valid url for the launchcontainer XBlock. "
                                  "URLs attempted: {}".format(urls)
