@@ -188,8 +188,10 @@ class LaunchContainerXBlock(XBlock):
             logger.debug("Current site config enabled: {}".format(
                 is_site_configuration_enabled())
             )
-            logger.debug("Current site config LAUNCHCONTAINER_WHARF_URL: {}".format(
-                siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')))
+            logger.debug("Current site config {} LAUNCHCONTAINER_WHARF_URL: {}".format(
+                WHARF_URL_KEY,
+                siteconfig_helpers.get_value(WHARF_URL_KEY))
+            )
 
         return url
 
@@ -309,9 +311,15 @@ def update_wharf_url_cache(sender, **kwargs):
     """
     Receiver that will update the cache item that contains
     this site's WHARF_URL_KEY.
+
+    TODO: This function could use a test or two once they are running in the edx
+    environment.
     """
     instance = kwargs['instance']
-    new_key = instance.values.get(WHARF_URL_KEY)
+
+    new_key = False
+    if hasattr(instance, 'values') and instance.values:
+        new_key = instance.values.get(WHARF_URL_KEY)
     if new_key:
         cache.set(make_cache_key(instance.site.domain),
                   instance.values.get(WHARF_URL_KEY),
