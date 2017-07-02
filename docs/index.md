@@ -82,6 +82,8 @@ You should then be able to take the title and the token of a Wharf project, and 
 
 *TODO: Insert screenshot of sdk studio_view.*
 
+TODO: How to run the tests, including adding django.contrib.site. This should be in the dependencies, too.
+
 ## INSTALL FOR DEVSTACK DEVELOPMENT 
 
 *Tested with Eucalyptus.*
