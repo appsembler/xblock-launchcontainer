@@ -1,10 +1,10 @@
 <div id="launcher1">
   <iframe src="{{ API_url }}" style="visibility: hidden" width="0" height="0"></iframe>
-  <form id="launcher_form">
-    <input type="text" class="hide" id="launcher_email" name="owner_email" {% if user_email %}value="{{ user_email }}"{% endif %} placeholder="Please enter your email address" />
-    <input type="text" class="hide" id="launcher_project" name="project" value="{{ project }}" />
-    <input type="text" class="hide" id="launcher_token" name="token" value="{{ project_token }}" />
-    <button type="submit" class="ui-priority-primary" id="launcher_submit">Click to launch your {{ project_friendly }} lab</button>
-  </form>
+  <div class="launcher-form--container">
+    <form id="launcher_form">
+      <input type="text" class="hide" id="launcher_email" name="owner_email" {% if user_email %}value="{{ user_email }}"{% endif %} placeholder="Please enter your email address" />
+      <button type="submit" class="ui-priority-primary" id="launcher_submit">Click to launch your {{ project_friendly }} lab</button>
+    </form>
+  </div>
   <div id="launcher_notification" class="hide"></div>
 </div>
