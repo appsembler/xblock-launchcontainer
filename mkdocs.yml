@@ -1,0 +1,10 @@
+dev_addr: '127.0.0.1:8080'
+site_name: "XBlock Launchcontainer!"
+site_description: "It's for deploying containers!"
+pages:
+  - 'Home': index.md
+theme: readthedocs
+markdown_extensions:
+  - toc:
+      anchorlink: True
+  - admonition:

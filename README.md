@@ -1,38 +1,17 @@
 # xblock-launchcontainer
-Open edX XBlock to include Appsembler's external course Container launcher
 
-# Installation
-```
-$ pip install -e git+https://github.com/jazkarta/xblock-launchcontainer.git@master#egg=launchcontainer
-```
-or add to your requires.txt
-```
--e git+https://github.com/jazkarta/xblock-launchcontainer.git@master#egg=launchcontainer
-```
+Open edX XBlock to launch containers from Appsembler's Virtual Labs (Wharf).
 
-Update your `lms.env.json` and `cms.env.json` to add:
-```
-"ADDL_INSTALLED_APPS" : ["launchcontainer"]
-```
-and 
-```
-"FEATURES": {
-    "ALLOW_ALL_ADVANCED_COMPONENTS": true
-}
+## GETTING STARTED 
+
+Get started by cloning this repo and installing the docs: 
+
+``` 
+$ git clone git@github.com:appsembler/xblock-launchcontainer.git
+$ cd xblock-launchcontainer
+$ workon <your_env_name>
+$ pip install mkdocs
+$ mkdocs serve 
 ```
 
-# Usage
-
-* In Studio, navigate to a Course, and select 'Advanced Settings' underneath the 
-'Settings' dropdown menu.
-* Under  'Advanced Module List' add 
-```
-["launchcontainer"] to the list of advanced modules
-```
-* Return to the Course Outline
-* Create a Section, Sub-section and Unit, if you haven’t already
-* In the “Add New Component” interface, you should now see an “Advanced” button
-* Click “Advanced” and choose “launchcontainer”
-
-
-
+You can now navigate to `localhost:8080` to view the install docs. Or view them [here](docs/index.md).

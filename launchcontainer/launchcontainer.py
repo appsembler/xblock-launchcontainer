@@ -1,29 +1,84 @@
-
 """This XBlock provides an HTML page fragment to display a button
-   allowing the Course user to launch an external course Container
-   via Appsembler's Container deploy API.
+   allowing the course user to launch an external course container
+   via Appsembler Virtual Labs (AVL or "Wharf").
 """
 
 import pkg_resources
 import logging
 
 from django.conf import settings
+from django.contrib.sites.models import Site
+from django.core import validators
+from django.core.cache import cache
+from django.db.models.signals import post_save
 from django.template import Context, Template
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String
 from xblock.fragment import Fragment
 
-
-log = logging.getLogger(__name__)
-
-
 try:
-    API_URL_DEFAULT = settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', None)['default']
-except (KeyError, TypeError):
-    API_URL_DEFAULT = 'http://isc.appsembler.com/isc/newdeploy'  # BBB
+    from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
+    from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
+    from openedx.core.djangoapps.site_configuration.helpers import (
+        is_site_configuration_enabled
+    )
+    from openedx.core.djangoapps.theming.helpers import get_current_site
+except ImportError:  # We're not in an openedx environment.
+    IS_OPENEDX_ENVIRON = False
+    siteconfig_helpers = None
+else:
+    IS_OPENEDX_ENVIRON = True
 
 
+logger = logging.getLogger(__name__)
+
+WHARF_URL_KEY = 'LAUNCHCONTAINER_WHARF_URL'
+CACHE_KEY_TIMEOUT = 60 * 60 * 72  # 72 hours.
+DEFAULT_WHARF_URL = 'https://wharf.appsembler.com/isc/newdeploy'
+STATIC_FILES = {
+    'studio': {
+        'template': 'static/html/launchcontainer_edit.html',
+        'css': 'static/css/launchcontainer_edit.css',
+        'js': 'static/js/src/launchcontainer_edit.js',
+        'js_class': 'LaunchContainerEditBlock'
+    },
+    'student': {
+        'template': 'static/html/launchcontainer.html',
+        'css': 'static/css/launchcontainer.css',
+        'js': 'static/js/src/launchcontainer.js',
+        'js_class': 'LaunchContainerXBlock'
+    }
+}
+
+
+def make_cache_key(site_domain):
+    return '{}.{}.'.format('launchcontainer_wharf_url', site_domain)
+
+
+def is_valid(url):
+    """Return True if this URL is valid."""
+    validator = validators.URLValidator()
+    try:
+        validator(url)
+    except validators.ValidationError:
+        return False
+    else:
+        return True
+
+
+def _add_static(fragment, type, context):
+    """Add the staticfiles to the fragment, where `type` is either student or studio,
+    and `context` is a dict that will be passed to the render_template function."""
+    fragment.add_content(render_template(STATIC_FILES[type]['template'], context))
+    fragment.add_css(render_template(STATIC_FILES[type]['css'], context))
+    fragment.add_javascript(render_template(STATIC_FILES[type]['js'], context))
+    fragment.initialize_js(STATIC_FILES[type]['js_class'])
+
+    return fragment
+
+
+@XBlock.needs('user')
 class LaunchContainerXBlock(XBlock):
     """
     Provide a Fragment with associated Javascript to display to
@@ -39,8 +94,8 @@ class LaunchContainerXBlock(XBlock):
         display_name='Project name',
         default=u'(EDIT THIS COMPONENT TO SET PROJECT NAME)',
         scope=Scope.content,
-        help=(u"The name of the container's Project as defined for the "
-             "Appsembler API"),
+        help=(u"The name of the project as defined for the "
+              "Appsembler Virtual Labs (AVL) API."),
     )
 
     project_friendly = String(
@@ -48,32 +103,102 @@ class LaunchContainerXBlock(XBlock):
         default=u'',
         scope=Scope.content,
         help=(u"The name of the container's Project as displayed to the end "
-             "user"),
+              "user"),
     )
 
-    api_url = String(
-        default=API_URL_DEFAULT,
+    project_token = String(
+        display_name='Project Token',
+        default=u'',
         scope=Scope.content,
+        help=(u"This is a unique token that can be found in the AVL dashboard")
     )
 
     @property
-    def block_course_org(self):
-        return self.runtime.course_id.org
+    def wharf_url(self, force=False):
+        """Determine which site we're on, then get the Wharf URL that said
+        site has configured."""
 
-    @property
-    def student_email(self):
-        if hasattr(self, "runtime"):
-            user = self.runtime._services['user'].get_current_user()
-            return user.emails[0]
-        else:
-            return None
-
-    def _get_API_url(self):
-        api_conf = settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', None)
+        # If we are in Tahoe studio, the Site object associated with this request
+        # will not be the Site associated with the user's "microsite" within Tahoe.
+        # To remedy this, we need to rely on the organization.
+        # If this does not work, it's possible that get_current_site() below
+        # will get the incorrect site, which should not contain a WHARF_URL_KEY,
+        # thereby causing this code to Fallback to the DEFAULT_WHARF_URL.
+        # TODO: Can we hook into edX's RequestCache? See: https://git.io/vH7Zf
         try:
-            return api_conf[self.block_course_org]
-        except (TypeError, KeyError):
-            return API_URL_DEFAULT
+            edx_site_domain = "{}.{}".format(self.course_id.org, settings.LMS_BASE)
+        except AttributeError:  # We're probably on the lms side: no settings.LMS_BASE.
+            edx_site_domain = None
+        try:
+            site = Site.objects.get(domain=edx_site_domain)
+        except Site.DoesNotExist:
+            site = get_current_site()  # From the request.
+
+        url = cache.get(make_cache_key(site.domain))
+        if url:
+            return url
+
+        # Nothing in the cache. Go find the URL.
+        site_wharf_url = None
+        if hasattr(site, 'configuration'):
+            site_wharf_url = site.configuration.get_value(WHARF_URL_KEY)
+        else:
+            # Rely on edX's helper, which will fall back to the microsites app.
+            site_wharf_url = siteconfig_helpers.get_value(WHARF_URL_KEY)
+
+        urls = (
+            # A SiteConfig object: this is the preferred implementation.
+            (
+                'SiteConfiguration',
+                site_wharf_url
+            ),
+            # TODO: Maybe we can cache this and set up a signal
+            # to update this value if a SiteConfig object is changed.
+            # A string: the currently supported implementation.
+            (
+                "ENV_TOKENS[{}]".format(WHARF_URL_KEY),
+                settings.ENV_TOKENS.get(WHARF_URL_KEY)
+            ),
+            # A dict: the deprecated version.
+            (
+                "ENV_TOKENS['LAUNCHCONTAINER_API_CONF']",
+                settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default')
+            ),
+            # Fallback to the default.
+            (
+                "Default", DEFAULT_WHARF_URL
+            )
+        )
+
+        url = next((x[1] for x in urls if is_valid(x[1])))
+        if not url:
+            raise AssertionError("You must set a valid url for the launchcontainer XBlock. "
+                                 "URLs attempted: {}".format(urls)
+                                 )
+
+        cache.set(make_cache_key(site), url, CACHE_KEY_TIMEOUT)
+
+        logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
+        if IS_OPENEDX_ENVIRON:
+            logger.debug("Current site: {}".format(get_current_site()))
+            logger.debug("Current site config enabled: {}".format(
+                is_site_configuration_enabled())
+            )
+            logger.debug("Current site config LAUNCHCONTAINER_WHARF_URL: {}".format(
+                siteconfig_helpers.get_value('LAUNCHCONTAINER_WHARF_URL')))
+
+        return url
+
+    # TODO: Cache this property?
+    @property
+    def user_email(self):
+
+        user_email = None
+        user_service = self.runtime.service(self, 'user')
+        user = user_service.get_current_user()
+        user_email = user.emails[0] if type(user.emails) == list else user.email
+
+        return user_email
 
     def student_view(self, context=None):
         """
@@ -81,34 +206,15 @@ class LaunchContainerXBlock(XBlock):
         when viewing courses.
         """
 
-        user_email = None
-        # workbench runtime won't supply system property
-        if getattr(self, 'system', None):
-            if self.system.anonymous_student_id:
-                if getattr(self.system, 'get_real_user', None):
-                    anon_id = self.system.anonymous_student_id
-                    user = self.system.get_real_user(anon_id)
-                    if user and user.is_authenticated():
-                        user_email = user.email
-                elif self.system.user_is_staff:  # Studio preview
-                    from django.contrib.auth.models import User
-                    user = User.objects.get(id=self.system.user_id)
-                    user_email = user.email
-
         context = {
             'project': self.project,
             'project_friendly': self.project_friendly,
-            'user_email' : user_email,
-            'API_url': self.api_url
+            'project_token': self.project_token,
+            'user_email': self.user_email,
+            'API_url': self.wharf_url
         }
-        frag = Fragment()
-        frag.add_content(
-            render_template('static/html/launchcontainer.html', context)
-        )
-        frag.add_javascript(render_template("static/js/src/launchcontainer.js",
-                                            context))
-        frag.initialize_js('LaunchContainerXBlock')
-        return frag
+
+        return _add_static(Fragment(), 'student', context)
 
     def studio_view(self, context=None):
         """
@@ -127,43 +233,38 @@ class LaunchContainerXBlock(XBlock):
                (field, none_to_empty(getattr(self, field.name)), validator)
                for field, validator in (
                    (cls.project, 'string'),
-                   (cls.project_friendly, 'string'), )
+                   (cls.project_friendly, 'string'),
+                   (cls.project_token, 'string'),
+               )
             )
 
-            context = {
-                'fields': edit_fields
-            }
-            fragment = Fragment()
-            fragment.add_content(
-                render_template(
-                    'static/html/launchcontainer_edit.html',
-                    context
-                )
-            )
-            fragment.add_javascript(
-                load_resource("static/js/src/launchcontainer_edit.js"))
-            fragment.initialize_js('LaunchContainerEditBlock')
+            context = {'fields': edit_fields,
+                       'API_url': self.wharf_url,
+                       'user_email': self.user_email
+                       }
 
-            return fragment
+            return _add_static(Fragment(), 'studio', context)
+
         except:  # pragma: NO COVER
-            log.error("Don't swallow my exceptions", exc_info=True)
+            # TODO: Handle all the errors and handle them well.
+            logger.error("Don't swallow my exceptions", exc_info=True)
             raise
 
     @XBlock.json_handler
     def studio_submit(self, data, suffix=''):
-        log.info(u'Received data: {}'.format(data))
-        try:
-            self.project = data['project']
-            self.project_friendly = data['project_friendly']
-            self.api_url = self._get_API_url()
+        logger.info(u'Received data: {}'.format(data))
 
-            return {
-                'result': 'success',
-            }
+        # TODO: This could use some better validation.
+        try:
+            self.project = data['project'].strip()
+            self.project_friendly = data['project_friendly'].strip()
+            self.project_token = data['project_token'].strip()
+            self.api_url = self.wharf_url
+
+            return {'result': 'success'}
+
         except Exception as e:
-            return {
-                'result': 'Error saving data:{0}'.format(str(e))
-            }
+            return {'result': 'Error saving data:{0}'.format(str(e))}
 
     @staticmethod
     def workbench_scenarios():
@@ -177,12 +278,14 @@ class LaunchContainerXBlock(XBlock):
              """)
         ]
 
+
 def load_resource(resource_path):  # pragma: NO COVER
-     """
-     Gets the content of a resource
-     """
-     resource_content = pkg_resources.resource_string(__name__, resource_path)
-     return unicode(resource_content)
+    """
+    Gets the content of a resource
+    """
+    resource_content = pkg_resources.resource_string(__name__, resource_path)
+
+    return unicode(resource_content)
 
 
 def render_template(template_path, context=None):  # pragma: NO COVER
@@ -194,4 +297,26 @@ def render_template(template_path, context=None):  # pragma: NO COVER
 
     template_str = load_resource(template_path)
     template = Template(template_str)
+
     return template.render(Context(context))
+
+
+def update_wharf_url_cache(sender, **kwargs):
+    """
+    Receiver that will update the cache item that contains
+    this site's WHARF_URL_KEY.
+    """
+    instance = kwargs['instance']
+    new_key = instance.values.get(WHARF_URL_KEY)
+    if new_key:
+        cache.set(make_cache_key(instance.site.domain),
+                  instance.values.get(WHARF_URL_KEY),
+                  CACHE_KEY_TIMEOUT
+                  )
+    else:
+        # Delete the key in the off chance that the user is trying
+        # to fall back to one of the other methods of storing the URL.
+        cache.delete(make_cache_key(instance.site.domain))
+
+if IS_OPENEDX_ENVIRON:
+    post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)

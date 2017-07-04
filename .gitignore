@@ -4,3 +4,4 @@
 /workbench.sqlite
 /dist
 workbench.*
+node_modules/
