@@ -82,6 +82,8 @@ You should then be able to take the title and the token of a Wharf project, and 
 
 *TODO: Insert screenshot of sdk studio_view.*
 
+TODO: How to run the tests, including adding django.contrib.site. This should be in the dependencies, too.
+
 ## INSTALL FOR DEVSTACK DEVELOPMENT 
 
 *Tested with Eucalyptus.*
@@ -223,6 +225,8 @@ ENV_TOKENS["FEATURES"].update({"ALLOW_ALL_ADVANCED_COMPONENTS": true})
 * Click “Advanced” and choose “Container Launcher"
 * Get a project name and token from Wharf, entering them into the appropriate fields 
 
+*The [Open edX documentation on XBlock][xblock-usage] usage may also prove useful at this step.*
+
 ## CONFIGURATION AND VARIABLE PRECEDENCE
 
 You will always have an AVL cluster associated with this XBlock. It can be set in several ways, with the preferred method being the `SiteConfiguration` via the Django sites framework. You can also configure an instance-wide (i.e., across the entire edX instance) by setting an edX environment variable of `LAUNCHCONTAINER_WHARF_URL=http://your.url.com/your/endpoint/`, such that it will be available in `ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL']`. 
@@ -247,3 +251,5 @@ $ python -m unittest -v test_module
 ```
 
 To run the Python unit tests, you'll need the xblock-sdk. If you followed the steps above to install it, you should be able to run `python manage.py test` from the root of your xblock-sdk.
+
+[xblock-usage]: http://edx.readthedocs.io/projects/xblock-tutorial/en/latest/edx_platform/devstack.html

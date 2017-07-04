@@ -6,13 +6,15 @@ import mock
 import unittest
 
 from django.conf import settings
+from django.core.cache import cache
+from django.core.exceptions import ImproperlyConfigured
 
 from xblock.field_data import DictFieldData
 from opaque_keys.edx.locations import Location, SlashSeparatedCourseKey
 
 from django.test import override_settings
 
-from .launchcontainer import DEFAULT_WHARF_URL, STATIC_FILES
+from .launchcontainer import STATIC_FILES, WHARF_URL_KEY
 
 WHARF_ENDPOINT_GOOD = "https://api.localhost"
 WHARF_ENDPOINT_BAD = "notARealUrl"
@@ -45,6 +47,9 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         )
         self.runtime = mock.Mock(anonymous_student_id='MOCK')
         self.scope_ids = mock.Mock()
+
+    def tearDown(self):
+        cache.clear()
 
     def make_one(self, display_name=None, **kw):
         """
@@ -159,48 +164,38 @@ class LaunchContainerXBlockTests(unittest.TestCase):
             "project_friendly": proj_friendly_str})))
         self.assertEqual(block.display_name, "Container Launcher")
 
-    def test_api_url_set_defined_with_org(self):
+    def test_api_url_set_from_env_tokens(self):
         """
-        A valid URL at ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] should be used as
+        A valid URL at ENV_TOKENS[WHARF_URL_KEY] should be used as
         the URL for requests.
         """
         ENV_TOKENS = settings.ENV_TOKENS
-        ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] = WHARF_ENDPOINT_GOOD
+        ENV_TOKENS[WHARF_URL_KEY] = WHARF_ENDPOINT_GOOD
 
         with override_settings(ENV_TOKENS=ENV_TOKENS):
             block = self.make_one()
             self.assertEqual(block.wharf_url, WHARF_ENDPOINT_GOOD)
 
-    def test_api_url_default_fallback(self):
-        """
-        If ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] is empty, the default should
-        be used.
-        """
-        ENV_TOKENS = settings.ENV_TOKENS
-        ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] = None
-
-        with override_settings(ENV_TOKENS=ENV_TOKENS):
-            block = self.make_one()
-            self.assertEqual(block.wharf_url, DEFAULT_WHARF_URL)
-
     def test_api_url_not_set(self):
         """
-        If ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] is not a valid url, the default should
-        be used.
+        If ENV_TOKENS[WHARF_URL_KEY] is not a valid url, an error should
+        be raised because no good URL exists.
         """
+
         ENV_TOKENS = settings.ENV_TOKENS
-        ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL'] = WHARF_ENDPOINT_BAD
+        ENV_TOKENS[WHARF_URL_KEY] = None
 
         with override_settings(ENV_TOKENS=ENV_TOKENS):
             block = self.make_one()
-            self.assertEqual(block.wharf_url, DEFAULT_WHARF_URL)
+            with self.assertRaises(ImproperlyConfigured):
+                block.wharf_url
 
     @mock.patch('launchcontainer.launchcontainer.logger')
     @mock.patch('launchcontainer.launchcontainer.siteconfig_helpers')
-    def test_failed_url_logging(self, config_helpers, mock_logger):
+    def test_url_logging(self, config_helpers, mock_logger):
         """The urls should always be logged to debug."""
 
-        config_helpers.get_value.return_value = WHARF_ENDPOINT_BAD
+        config_helpers.get_value.return_value = WHARF_ENDPOINT_GOOD
         block = self.make_one()
 
         block.wharf_url
