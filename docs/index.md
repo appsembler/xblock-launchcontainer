@@ -225,6 +225,8 @@ ENV_TOKENS["FEATURES"].update({"ALLOW_ALL_ADVANCED_COMPONENTS": true})
 * Click “Advanced” and choose “Container Launcher"
 * Get a project name and token from Wharf, entering them into the appropriate fields 
 
+*The [Open edX documentation on XBlock][xblock-usage] usage may also prove useful at this step.*
+
 ## CONFIGURATION AND VARIABLE PRECEDENCE
 
 You will always have an AVL cluster associated with this XBlock. It can be set in several ways, with the preferred method being the `SiteConfiguration` via the Django sites framework. You can also configure an instance-wide (i.e., across the entire edX instance) by setting an edX environment variable of `LAUNCHCONTAINER_WHARF_URL=http://your.url.com/your/endpoint/`, such that it will be available in `ENV_TOKENS['LAUNCHCONTAINER_WHARF_URL']`. 
@@ -237,3 +239,5 @@ The code will find your URL in the following order:
 4) Fall back to the value defined in `launchcontainer.py`
 
 *Note: This variable is cached, and the cache will be updated when the `SiteConfiguration` is changed.*
+
+[xblock-usage]: http://edx.readthedocs.io/projects/xblock-tutorial/en/latest/edx_platform/devstack.html
