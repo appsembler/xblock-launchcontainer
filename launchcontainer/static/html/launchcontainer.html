@@ -2,9 +2,17 @@
   <iframe src="{{ API_url }}" style="visibility: hidden" width="0" height="0"></iframe>
   <div class="launcher-form--container">
     <form id="launcher_form">
-      <input type="text" class="hide" id="launcher_email" name="owner_email" {% if user_email %}value="{{ user_email }}"{% endif %} placeholder="Please enter your email address" />
+      <input type="text" class="is-hidden" id="launcher_email" name="owner_email" {% if user_email %}value="{{ user_email }}"{% endif %} placeholder="Please enter your email address" />
       <button type="submit" class="ui-priority-primary" id="launcher_submit">Click to launch your {{ project_friendly }} lab</button>
     </form>
   </div>
-  <div id="launcher_notification" class="hide"></div>
+  <div id="launcher_notification" class="is-hidden u-display-inline-block"> 
+    <div class='launch-alert launch-alert--information'>
+      <span class='launch-alert--icon fa fa-bullhorn'></span>
+      <div class='launch-alert--message'>
+        <h3 class='launch-alert--title'>Notification Placeholder</h3>
+        <p class='launch-alert--body'>Message placeholder</p>
+      </div>
+    </div>
+  </div>
 </div>

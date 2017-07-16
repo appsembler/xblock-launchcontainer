@@ -1,5 +1,5 @@
-.hide {
-  display: none;
+.is-hidden {
+  display: none !important;
 }
 
 .wraptext {
@@ -13,9 +13,6 @@ div#launcher_notification, .launcher-form--container {
   margin: 10px 0;
 }
 
-div#launcher_notification { 
-  display: inline-block;
-}
 
 div#launcher_notification p {
   margin-bottom: 0;
@@ -23,6 +20,11 @@ div#launcher_notification p {
 
 #launcher_submit {
   padding: 10px;
+}
+
+/********* Utils ************/
+.u-display-inline-block {
+  display: inline-block;
 }
 
 /********* Alerts ***********/
@@ -42,7 +44,7 @@ div#launcher_notification p {
   margin: 1.5rem 0;
 }
 
-.launch-alert .icon { 
+.launch-alert .launch-alert--icon { 
   float: left;
   display: block;
   border-radius: 50%;
@@ -68,7 +70,7 @@ div#launcher_notification p {
   box-shadow: inset 0 0 0 0.25rem #feeced;
 }
 
-.launch-alert--error .icon { 
+.launch-alert--error .launch-alert--icon { 
   background-color: #cb0712;
 }
 
@@ -79,7 +81,7 @@ div#launcher_notification p {
   box-shadow: inset 0 0 0 0.25rem #ddf3ff;
 }
 
-.launch-alert--information .icon { 
+.launch-alert--information .launch-alert--icon { 
   background-color: #0086ce;
 }
 
@@ -90,6 +92,6 @@ div#launcher_notification p {
   box-shadow: inset 0 0 0 0.25rem #ecfaec;
 }
 
-.launch-alert--success .icon {
+.launch-alert--success .launch-alert--icon {
   background-color: #009b00;
 }
