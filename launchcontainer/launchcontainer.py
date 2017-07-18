@@ -21,23 +21,23 @@ log = logging.getLogger(__name__)
 try:
     API_URL_DEFAULT = settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', None)['default']
 except TypeError:
-    API_URL_DEFAULT = 'http://isc.appsembler.com/isc/newdeploy'  # BBB
+    API_URL_DEFAULT = 'https://isc.appsembler.com/isc/newdeploy'  # BBB
 
 
 class LaunchContainerXBlock(XBlock):
     """
-    Provide a Fragment with associated Javascript to display to 
+    Provide a Fragment with associated Javascript to display to
     Students a button that will launch a configurable external course
     Container via a call to Appsembler's container deploy API.
     """
 
-    display_name = String(help="Display name of the component", 
+    display_name = String(help="Display name of the component",
                           default="Container Launcher",
                           scope=Scope.settings)
 
     project = String(
         display_name='Project name',
-        default=u'(EDIT THIS COMPONENT TO SET PROJECT NAME)', 
+        default=u'(EDIT THIS COMPONENT TO SET PROJECT NAME)',
         scope=Scope.content,
         help=(u"The name of the container's Project as defined for the "
              "Appsembler API"),
@@ -45,7 +45,7 @@ class LaunchContainerXBlock(XBlock):
 
     project_friendly = String(
         display_name='Project Friendly name',
-        default=u'', 
+        default=u'',
         scope=Scope.content,
         help=(u"The name of the container's Project as displayed to the end "
              "user"),
@@ -59,7 +59,7 @@ class LaunchContainerXBlock(XBlock):
     @property
     def block_course_org(self):
         return self.runtime.course_id.org
-    
+
     @property
     def student_email(self):
         if hasattr(self, "runtime"):
@@ -122,11 +122,11 @@ class LaunchContainerXBlock(XBlock):
                 Return empty string if data is None else return data.
                 """
                 return data if data is not None else ''
-           
+
             edit_fields = (
                (field, none_to_empty(getattr(self, field.name)), validator)
                for field, validator in (
-                   (cls.project, 'string'), 
+                   (cls.project, 'string'),
                    (cls.project_friendly, 'string'), )
             )
 
