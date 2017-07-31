@@ -14,6 +14,7 @@ from django.db.models.signals import post_save
 from django.template import Context, Template
 from django.core.exceptions import ImproperlyConfigured
 
+from crum import get_current_user
 from xblock.core import XBlock
 from xblock.fields import Scope, String
 from xblock.fragment import Fragment
@@ -134,7 +135,7 @@ class LaunchContainerXBlock(XBlock):
             if get_current_site:
                 site = get_current_site()  # From the request.
             else:
-                site = Site.objects.all().order_by('domain').first()  # We're in the xblock-sdk.
+                site = Site.objects.all().order_by('domain').first()
 
         url = cache.get(make_cache_key(site.domain))
         if url:
@@ -196,12 +197,15 @@ class LaunchContainerXBlock(XBlock):
     @property
     def user_email(self):
 
-        user_email = None
+        user = get_current_user()
+        if hasattr(user, 'email'):
+            return user.email
+
         user_service = self.runtime.service(self, 'user')
         user = user_service.get_current_user()
-        user_email = user.emails[0] if type(user.emails) == list else user.email
+        email = user.emails[0] if type(user.emails) == list else user.email
 
-        return user_email
+        return email
 
     def student_view(self, context=None):
         """
