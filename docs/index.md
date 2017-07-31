@@ -2,6 +2,10 @@
 
 Open edX XBlock to launch containers from Appsembler's Virtual Labs (Wharf).
 
+# Requirements 
+
+This needs to run in one of two environments: the `xblock-sdk` or within Open edX. It has been tested with Dogwood, Eucalyptus, and Fikus. The only library required (besides, of course `xblock` is `django-crum`. I suspect your instance of Open edX already has both of these installed.
+
 # Installation
 
 ## FOR LOCAL DEVELOPMENT w/ xblock-sdk
