@@ -95,7 +95,7 @@ class LaunchContainerXBlock(XBlock):
 
     project = String(
         display_name='Project Name',
-        default=u'(EDIT THIS COMPONENT TO SET PROJECT NAME)',
+        default=u'',
         scope=Scope.content,
         help=(u"The name of the project as defined for the "
               "Appsembler Virtual Labs (AVL) API."),
