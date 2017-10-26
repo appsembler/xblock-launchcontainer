@@ -28,6 +28,10 @@ function LaunchContainerXBlock(runtime, element) {
 
       $('#launcher_form').submit(function (event) {
 
+        $user_email = event.target.owner_email.value;
+        $project = event.target.project.value;
+        $token = event.target.token.value;
+
         // Shut down the buttons.
         event.preventDefault();
         $launcher_submit.disabled = true; 
@@ -38,9 +42,9 @@ function LaunchContainerXBlock(runtime, element) {
                             .removeClass('ui-state-notification');
         $launch_iframe = $launcher.find('iframe')[0];
         $launch_iframe.contentWindow.postMessage({
-          'project': "{{ project|escapejs }}",
-          'owner_email': "{{ user_email|escapejs }}",
-          'token': "{{ project_token|escapejs }}"
+          'project': $project, 
+          'owner_email': $user_email,
+          'token': $token,
           }, "{{ API_url|escapejs }}"
         );
         return false;
