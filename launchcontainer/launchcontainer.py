@@ -94,15 +94,15 @@ class LaunchContainerXBlock(XBlock):
                           scope=Scope.settings)
 
     project = String(
-        display_name='Project name',
-        default=u'(EDIT THIS COMPONENT TO SET PROJECT NAME)',
+        display_name='Project Name',
+        default=u'',
         scope=Scope.content,
         help=(u"The name of the project as defined for the "
               "Appsembler Virtual Labs (AVL) API."),
     )
 
     project_friendly = String(
-        display_name='Project Friendly name',
+        display_name='Project Friendly Name',
         default=u'',
         scope=Scope.content,
         help=(u"The name of the container's Project as displayed to the end "
