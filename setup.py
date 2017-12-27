@@ -32,7 +32,8 @@ setup(
     ],
     install_requires=[
         'XBlock>=1.0,<=1.1.1',
-        'django-crum'
+        'django-crum=0.7.2',
+        'web-fragments==0.2.2'
     ],
     entry_points={
         'xblock.v1': [
