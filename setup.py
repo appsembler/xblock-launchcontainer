@@ -22,7 +22,7 @@ def package_data(pkg, roots):
 
 setup(
     name='xblock-launchcontainer',
-    version='2.1.5',
+    version='2.1.8',
     author='Bryan Wilson, Appsembler',
     description=('Open EdX XBlock to display a button allowing an LMS user '
                  'to launch and link to an external courseware resource via the '
@@ -31,8 +31,9 @@ setup(
         'launchcontainer',
     ],
     install_requires=[
-        'XBlock<0.5',
-        'django-crum'
+        'XBlock>=1.0,<=1.1.1',
+        'django-crum==0.7.2',
+        'web-fragments==0.2.2'
     ],
     entry_points={
         'xblock.v1': [
