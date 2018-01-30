@@ -24,6 +24,7 @@ function LaunchContainerXBlock(runtime, element) {
           $post_url = '{{ API_url|escapejs }}',
           $launcher_form = $('#launcher_form'),
           $launcher_submit = $('#launcher_submit'),
+          launcher_submit_text = $launcher_submit.text(),
           $launcher_reset = $('#launcher_reset'),
           $launcher_email = $('#launcher_email'),
           $launch_notification = $('#launcher_notification'), 
@@ -75,15 +76,20 @@ function LaunchContainerXBlock(runtime, element) {
             dataType: "json",
             data: JSON.stringify(formData),
             success: function (data) {
-              console.log(data)
+              $launcher_form.removeClass('hide');
+              $launch_notification.html('<p class="verify-button-success-text" style="font-weight: bold; color: #008200;">\n' +
+                '    Your lab has been reset' +
+                '</p>');
+              $launcher_reset.text('Reset');
+              $launcher_submit.text(launcher_submit_text);
+              $launcher_submit.disabled = false;
+              $launcher_reset.disabled = false;
             }
         });
+        $launcher_form.addClass('hide');
+        $launcher_reset.text('Resetting...');
         $launcher_submit.disabled = true;
         $launcher_reset.disabled = true;
-        $launcher_reset.text('Resetting...');
-        $launch_notification.removeClass('hide')
-                            .removeClass('ui-state-error')
-                            .removeClass('ui-state-notification');
         return false;
       });
 
