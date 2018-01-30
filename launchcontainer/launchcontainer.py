@@ -5,6 +5,7 @@
 
 import pkg_resources
 import logging
+from urlparse import urlparse
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -57,6 +58,11 @@ STATIC_FILES = {
 
 def make_cache_key(site_domain):
     return '{}.{}.'.format('launchcontainer_wharf_url', site_domain)
+
+
+def get_api_root_url(url):
+    parsed_url = urlparse(url)
+    return "{}://{}".format(parsed_url.scheme, parsed_url.netloc)
 
 
 def is_valid(url):
@@ -193,6 +199,11 @@ class LaunchContainerXBlock(XBlock):
 
         return url
 
+    @property
+    def wharf_delete_url(self):
+        api_root = get_api_root_url(self.wharf_url)
+        return "{}/isc/dashboard/userprojectdeployments/delete_user_deployments/".format(api_root)
+
     # TODO: Cache this property?
     @property
     def user_email(self):
@@ -218,7 +229,8 @@ class LaunchContainerXBlock(XBlock):
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
             'user_email': self.user_email,
-            'API_url': self.wharf_url
+            'API_url': self.wharf_url,
+            'API_delete_url': self.wharf_delete_url,
         }
 
         return _add_static(Fragment(), 'student', context)
@@ -247,6 +259,7 @@ class LaunchContainerXBlock(XBlock):
 
             context = {'fields': edit_fields,
                        'API_url': self.wharf_url,
+                       'API_delete_url': self.wharf_delete_url,
                        'user_email': self.user_email
                        }
 
@@ -267,6 +280,8 @@ class LaunchContainerXBlock(XBlock):
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()
             self.api_url = self.wharf_url
+            self.api_delete_url = self.wharf_delete_url
+
 
             return {'result': 'success'}
 

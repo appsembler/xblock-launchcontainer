@@ -6,6 +6,15 @@ function getURLOrigin(path) {
   return link.protocol + '//' + link.hostname + port;
 }
 
+function objectifyForm(formArray) {//serialize data function
+
+  var returnArray = {};
+  for (var i = 0; i < formArray.length; i++){
+    returnArray[formArray[i]['name']] = formArray[i]['value'];
+  }
+  return returnArray;
+}
+
 function LaunchContainerXBlock(runtime, element) {
 
   $(document).ready(
@@ -15,6 +24,7 @@ function LaunchContainerXBlock(runtime, element) {
           $post_url = '{{ API_url|escapejs }}',
           $launcher_form = $('#launcher_form'),
           $launcher_submit = $('#launcher_submit'),
+          $launcher_reset = $('#launcher_reset'),
           $launcher_email = $('#launcher_email'),
           $launch_notification = $('#launcher_notification'), 
           $waiting = 'Your request for a lab is being processed, and may take up to 90 seconds to start. '
@@ -47,6 +57,33 @@ function LaunchContainerXBlock(runtime, element) {
           'token': $token,
           }, "{{ API_url|escapejs }}"
         );
+        return false;
+      });
+
+      $('#launcher_reset').click(function (event) {
+
+        var formData = objectifyForm($launcher_form.serializeArray());
+        console.log(formData);
+        console.log(JSON.stringify(formData));
+
+        // Shut down the buttons.
+        event.preventDefault();
+        $.ajax({
+            type: "POST",
+            url: '{{ API_delete_url|escapejs }}',
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(formData),
+            success: function (data) {
+              console.log(data)
+            }
+        });
+        $launcher_submit.disabled = true;
+        $launcher_reset.disabled = true;
+        $launcher_reset.text('Resetting...');
+        $launch_notification.removeClass('hide')
+                            .removeClass('ui-state-error')
+                            .removeClass('ui-state-notification');
         return false;
       });
 
