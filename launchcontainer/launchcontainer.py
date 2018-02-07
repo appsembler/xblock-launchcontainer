@@ -17,7 +17,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from crum import get_current_user
 from xblock.core import XBlock
-from xblock.fields import Scope, String
+from xblock.fields import Boolean, Scope, String
 from xblock.fragment import Fragment
 
 try:
@@ -120,6 +120,13 @@ class LaunchContainerXBlock(XBlock):
         default=u'',
         scope=Scope.content,
         help=(u"This is a unique token that can be found in the AVL dashboard")
+    )
+
+    enable_container_resetting = Boolean(
+        display_name='Enable container resetting',
+        default=False,
+        scope=Scope.content,
+        help=(u"Enables students to reset/delete their container and start over")
     )
 
     @property
@@ -225,6 +232,7 @@ class LaunchContainerXBlock(XBlock):
         """
 
         context = {
+            'enable_container_resetting': self.enable_container_resetting,
             'project': self.project,
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
@@ -254,6 +262,7 @@ class LaunchContainerXBlock(XBlock):
                    (cls.project, 'string'),
                    (cls.project_friendly, 'string'),
                    (cls.project_token, 'string'),
+                   (cls.enable_container_resetting, 'boolean'),
                )
             )
 
@@ -276,6 +285,7 @@ class LaunchContainerXBlock(XBlock):
 
         # TODO: This could use some better validation.
         try:
+            self.enable_container_resetting = data['enable_container_resetting']
             self.project = data['project'].strip()
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()

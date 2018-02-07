@@ -4,6 +4,7 @@ function LaunchContainerEditBlock(runtime, element) {
     $('.save-button', element).bind('click', function() {
         var handlerUrl = runtime.handlerUrl(element, 'studio_submit');
         var data = {
+          'enable_container_resetting': $('#enable_container_resetting_input').val(),
           'project': $('#project_input').val(),
           'project_friendly': $('#project_friendly_input').val(),
           'project_token': $('#project_token_input').val()
