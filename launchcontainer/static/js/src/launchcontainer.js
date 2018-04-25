@@ -64,8 +64,6 @@ function LaunchContainerXBlock(runtime, element) {
       $('#launcher_reset').click(function (event) {
 
         var formData = objectifyForm($launcher_form.serializeArray());
-        console.log(formData);
-        console.log(JSON.stringify(formData));
 
         // Shut down the buttons.
         event.preventDefault();
