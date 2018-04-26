@@ -5,6 +5,7 @@
 
 import pkg_resources
 import logging
+from urlparse import urlparse
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -16,7 +17,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from crum import get_current_user
 from xblock.core import XBlock
-from xblock.fields import Scope, String
+from xblock.fields import Boolean, Scope, String
 from xblock.fragment import Fragment
 
 try:
@@ -57,6 +58,11 @@ STATIC_FILES = {
 
 def make_cache_key(site_domain):
     return '{}.{}.'.format('launchcontainer_wharf_url', site_domain)
+
+
+def get_api_root_url(url):
+    parsed_url = urlparse(url)
+    return "{}://{}".format(parsed_url.scheme, parsed_url.netloc)
 
 
 def is_valid(url):
@@ -114,6 +120,13 @@ class LaunchContainerXBlock(XBlock):
         default=u'',
         scope=Scope.content,
         help=(u"This is a unique token that can be found in the AVL dashboard")
+    )
+
+    enable_container_resetting = Boolean(
+        display_name='Enable container resetting',
+        default=False,
+        scope=Scope.content,
+        help=(u"Enables students to reset/delete their container and start over")
     )
 
     @property
@@ -193,6 +206,11 @@ class LaunchContainerXBlock(XBlock):
 
         return url
 
+    @property
+    def wharf_delete_url(self):
+        api_root = get_api_root_url(self.wharf_url)
+        return "{}/isc/dashboard/userprojectdeployments/delete_user_deployments/".format(api_root)
+
     # TODO: Cache this property?
     @property
     def user_email(self):
@@ -214,11 +232,13 @@ class LaunchContainerXBlock(XBlock):
         """
 
         context = {
+            'enable_container_resetting': self.enable_container_resetting,
             'project': self.project,
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
             'user_email': self.user_email,
-            'API_url': self.wharf_url
+            'API_url': self.wharf_url,
+            'API_delete_url': self.wharf_delete_url,
         }
 
         return _add_static(Fragment(), 'student', context)
@@ -242,11 +262,13 @@ class LaunchContainerXBlock(XBlock):
                    (cls.project, 'string'),
                    (cls.project_friendly, 'string'),
                    (cls.project_token, 'string'),
+                   (cls.enable_container_resetting, 'boolean'),
                )
             )
 
             context = {'fields': edit_fields,
                        'API_url': self.wharf_url,
+                       'API_delete_url': self.wharf_delete_url,
                        'user_email': self.user_email
                        }
 
@@ -263,10 +285,13 @@ class LaunchContainerXBlock(XBlock):
 
         # TODO: This could use some better validation.
         try:
+            self.enable_container_resetting = data['enable_container_resetting']
             self.project = data['project'].strip()
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()
             self.api_url = self.wharf_url
+            self.api_delete_url = self.wharf_delete_url
+
 
             return {'result': 'success'}
 

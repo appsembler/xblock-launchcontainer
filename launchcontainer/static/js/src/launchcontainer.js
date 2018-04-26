@@ -6,6 +6,15 @@ function getURLOrigin(path) {
   return link.protocol + '//' + link.hostname + port;
 }
 
+function objectifyForm(formArray) {//serialize data function
+
+  var returnArray = {};
+  for (var i = 0; i < formArray.length; i++){
+    returnArray[formArray[i]['name']] = formArray[i]['value'];
+  }
+  return returnArray;
+}
+
 function LaunchContainerXBlock(runtime, element) {
 
   $(document).ready(
@@ -15,6 +24,8 @@ function LaunchContainerXBlock(runtime, element) {
           $post_url = '{{ API_url|escapejs }}',
           $launcher_form = $('#launcher_form'),
           $launcher_submit = $('#launcher_submit'),
+          launcher_submit_text = $launcher_submit.text(),
+          $launcher_reset = $('#launcher_reset'),
           $launcher_email = $('#launcher_email'),
           $launch_notification = $('#launcher_notification'), 
           $waiting = 'Your request for a lab is being processed, and may take up to 90 seconds to start. '
@@ -47,6 +58,36 @@ function LaunchContainerXBlock(runtime, element) {
           'token': $token,
           }, "{{ API_url|escapejs }}"
         );
+        return false;
+      });
+
+      $('#launcher_reset').click(function (event) {
+
+        var formData = objectifyForm($launcher_form.serializeArray());
+
+        // Shut down the buttons.
+        event.preventDefault();
+        $.ajax({
+            type: "POST",
+            url: '{{ API_delete_url|escapejs }}',
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(formData),
+            success: function (data) {
+              $launcher_form.removeClass('hide');
+              $launch_notification.html('<p class="verify-button-success-text" style="font-weight: bold; color: #008200;">\n' +
+                '    Your lab has been reset' +
+                '</p>');
+              $launcher_reset.text('Reset');
+              $launcher_submit.text(launcher_submit_text);
+              $launcher_submit.disabled = false;
+              $launcher_reset.disabled = false;
+            }
+        });
+        $launcher_form.addClass('hide');
+        $launcher_reset.text('Resetting...');
+        $launcher_submit.disabled = true;
+        $launcher_reset.disabled = true;
         return false;
       });
 
