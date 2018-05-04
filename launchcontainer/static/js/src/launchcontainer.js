@@ -1,9 +1,7 @@
 function getURLOrigin(path) {
   var link = document.createElement('a');
   link.setAttribute('href', path);
-
-  port = (link.port) ? ':'+link.port : '';
-  return link.protocol + '//' + link.hostname + port;
+  return link.protocol + '//' + link.host;
 }
 
 function objectifyForm(formArray) {//serialize data function
