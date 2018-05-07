@@ -6,6 +6,7 @@
     <input type="text" class="hide" id="launcher_token" name="token" value="{{ project_token }}" />
     <button type="submit" class="ui-priority-primary" id="launcher_submit">Click to launch your {{ project_friendly }} lab</button>
   </form>
-  {% if enable_container_resetting %}<button type="button" class="ui-priority-primary" id="launcher_reset">Reset lab</button>{% endif %}
   <div id="launcher_notification" class="hide"></div>
+  {% if enable_container_resetting %}<button type="button" class="ui-priority-primary" id="launcher_reset">Reset lab</button>{% endif %}
+
 </div>
