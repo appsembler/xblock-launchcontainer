@@ -28,13 +28,7 @@ try:
     )
     from openedx.core.djangoapps.theming.helpers import get_current_site
 except ImportError:  # We're not in an openedx environment.
-    IS_OPENEDX_ENVIRON = False
-    siteconfig_helpers = None
-    is_site_configuration_enabled = None
-    get_current_site = None
-else:
-    IS_OPENEDX_ENVIRON = True
-
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -199,15 +193,6 @@ class LaunchContainerXBlock(XBlock):
         cache.set(make_cache_key(site), url, CACHE_KEY_TIMEOUT)
 
         logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
-        if IS_OPENEDX_ENVIRON:
-            logger.debug("Current site: {}".format(get_current_site()))
-            logger.debug("Current site config enabled: {}".format(
-                is_site_configuration_enabled())
-            )
-            logger.debug("Current site config {} LAUNCHCONTAINER_WHARF_URL: {}".format(
-                WHARF_URL_KEY,
-                siteconfig_helpers.get_value(WHARF_URL_KEY))
-            )
 
         return url
 
@@ -360,5 +345,4 @@ def update_wharf_url_cache(sender, **kwargs):
         # to fall back to one of the other methods of storing the URL.
         cache.delete(make_cache_key(instance.site.domain))
 
-if IS_OPENEDX_ENVIRON:
-    post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
+post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
