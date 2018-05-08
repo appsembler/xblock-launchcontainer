@@ -27,8 +27,11 @@ try:
         is_site_configuration_enabled
     )
     from openedx.core.djangoapps.theming.helpers import get_current_site
-except ImportError:  # We're not in an openedx environment.
-    pass
+except ImportError:  # We're in an older Open edX environment.
+    siteconfig_helpers = None
+    is_site_configuration_enabled = None
+    get_current_site = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +267,7 @@ class LaunchContainerXBlock(XBlock):
 
             return _add_static(Fragment(), 'studio', context)
 
-        except:  # pragma: NO COVER
+        except:  # noqa E722 # pragma: NO COVER
             # TODO: Handle all the errors and handle them well.
             logger.error("Don't swallow my exceptions", exc_info=True)
             raise
@@ -281,7 +284,6 @@ class LaunchContainerXBlock(XBlock):
             self.project_token = data['project_token'].strip()
             self.api_url = self.wharf_url
             self.api_delete_url = self.wharf_delete_url
-
 
             return {'result': 'success'}
 
@@ -344,5 +346,6 @@ def update_wharf_url_cache(sender, **kwargs):
         # Delete the key in the off chance that the user is trying
         # to fall back to one of the other methods of storing the URL.
         cache.delete(make_cache_key(instance.site.domain))
+
 
 post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
