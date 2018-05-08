@@ -11,7 +11,11 @@
 div#launcher_notification {
   padding: 10px;
   margin: 10px 0;
-  display: inline-block;
+  display: block;
+}
+
+div#launcher_notification.hide {
+  visibility: hidden;
 }
 
 div#launcher_notification p {
@@ -21,3 +25,4 @@ div#launcher_notification p {
 #launcher_submit {
   padding: 10px;
 }
+
