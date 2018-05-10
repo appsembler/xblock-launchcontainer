@@ -1,7 +1,13 @@
 function getURLOrigin(path) {
   var link = document.createElement('a');
   link.setAttribute('href', path);
-  return link.protocol + '//' + link.host;
+  /* 
+  IE 11 will set link.port to string "443" or "80" depending on protocol
+  it will also sometimes include ":80" or ":443" in link.host, sometimes not
+  (the 'not' case may be just the implementation for IE Dev Tools, but to be sure...)
+  */
+  var port = (link.port != '443' && link.port != '80' ? ':' + link.port : '');
+  return link.protocol + '//' + link.hostname + port;
 }
 
 function objectifyForm(formArray) {//serialize data function
