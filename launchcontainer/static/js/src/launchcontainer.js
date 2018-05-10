@@ -6,7 +6,8 @@ function getURLOrigin(path) {
   it will also sometimes include ":80" or ":443" in link.host, sometimes not
   (the 'not' case may be just the implementation for IE Dev Tools, but to be sure...)
   */
-  var port = (link.port != '443' && link.port != '80' ? ':' + link.port : '');
+  var vanilla_ports = ['443', '80', ''];
+  var port = (vanilla_ports.indexOf(link.port) == -1 ? ':' + link.port : '');
   return link.protocol + '//' + link.hostname + port;
 }
 
