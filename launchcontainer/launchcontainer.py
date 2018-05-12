@@ -27,13 +27,10 @@ try:
         is_site_configuration_enabled
     )
     from openedx.core.djangoapps.theming.helpers import get_current_site
-except ImportError:  # We're not in an openedx environment.
-    IS_OPENEDX_ENVIRON = False
+except ImportError:  # We're in an older Open edX environment.
     siteconfig_helpers = None
     is_site_configuration_enabled = None
     get_current_site = None
-else:
-    IS_OPENEDX_ENVIRON = True
 
 
 logger = logging.getLogger(__name__)
@@ -134,16 +131,21 @@ class LaunchContainerXBlock(XBlock):
         """Determine which site we're on, then get the Wharf URL that said
         site has configured."""
 
+        # The complexities of Tahoe require that we check several places
+        # for the site configuration, which itself contains the URL
+        # of the AVL cluster associated with this site.
+        #
         # If we are in Tahoe studio, the Site object associated with this request
-        # will not be the Site associated with the user's "microsite" within Tahoe.
-        # To remedy this, we need to rely on the organization.
-        # If this does not work, it's possible that get_current_site() below
-        # will get the incorrect site, which should not contain a WHARF_URL_KEY,
-        # thereby causing this code to Fallback to the DEFAULT_WHARF_URL.
+        # will not be the one used within Tahoe. To get the proper domain
+        # we rely on the "organization", which always equals `Site.name`.
+        # If the organization value does not return a site object, we are probably on
+        # the LMS side. In this case, we use `get_current_site()`, which _does_
+        # return the incorrect site object. If all this fails, we fallback
+        # to the DEFAULT_WHARF_URL.
         try:
-            # TODO: Can we hook into edX's RequestCache? See: https://git.io/vH7Zf
-            edx_site_domain = "{}.{}".format(self.course_id.org, settings.LMS_BASE)
-            site = Site.objects.get(domain=edx_site_domain)
+            # The name of the Site object will always match self.course_id.org.
+            # See: https://git.io/vpilS
+            site = Site.objects.get(name=self.course_id.org)
         except (Site.DoesNotExist, AttributeError):  # Probably on the lms side.
             if get_current_site:
                 site = get_current_site()  # From the request.
@@ -194,15 +196,6 @@ class LaunchContainerXBlock(XBlock):
         cache.set(make_cache_key(site), url, CACHE_KEY_TIMEOUT)
 
         logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
-        if IS_OPENEDX_ENVIRON:
-            logger.debug("Current site: {}".format(get_current_site()))
-            logger.debug("Current site config enabled: {}".format(
-                is_site_configuration_enabled())
-            )
-            logger.debug("Current site config {} LAUNCHCONTAINER_WHARF_URL: {}".format(
-                WHARF_URL_KEY,
-                siteconfig_helpers.get_value(WHARF_URL_KEY))
-            )
 
         return url
 
@@ -274,7 +267,7 @@ class LaunchContainerXBlock(XBlock):
 
             return _add_static(Fragment(), 'studio', context)
 
-        except:  # pragma: NO COVER
+        except:  # noqa E722 # pragma: NO COVER
             # TODO: Handle all the errors and handle them well.
             logger.error("Don't swallow my exceptions", exc_info=True)
             raise
@@ -291,7 +284,6 @@ class LaunchContainerXBlock(XBlock):
             self.project_token = data['project_token'].strip()
             self.api_url = self.wharf_url
             self.api_delete_url = self.wharf_delete_url
-
 
             return {'result': 'success'}
 
@@ -355,5 +347,5 @@ def update_wharf_url_cache(sender, **kwargs):
         # to fall back to one of the other methods of storing the URL.
         cache.delete(make_cache_key(instance.site.domain))
 
-if IS_OPENEDX_ENVIRON:
-    post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
+
+post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
