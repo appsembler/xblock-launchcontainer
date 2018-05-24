@@ -348,4 +348,5 @@ def update_wharf_url_cache(sender, **kwargs):
         cache.delete(make_cache_key(instance.site.domain))
 
 
-post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
+if is_site_configuration_enabled:
+    post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
