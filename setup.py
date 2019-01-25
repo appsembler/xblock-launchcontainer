@@ -31,7 +31,7 @@ setup(
         'launchcontainer',
     ],
     install_requires=[
-        'XBlock<0.5',
+        'XBlock==1.2.1',
         'django-crum'
     ],
     entry_points={
