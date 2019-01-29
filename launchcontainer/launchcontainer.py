@@ -3,12 +3,18 @@
    via Appsembler Virtual Labs (AVL or "Wharf").
 """
 
+"""
+   Tech note:
+   This file is imported at startup. Imports of models or things which
+   import models will break startup on Django 1.9+. If you need models here,
+   please import them inside the function which uses them.
+"""
+
 import pkg_resources
 import logging
 from urlparse import urlparse
 
 from django.conf import settings
-from django.contrib.sites.models import Site
 from django.core import validators
 from django.core.cache import cache
 from django.db.models.signals import post_save
@@ -142,6 +148,7 @@ class LaunchContainerXBlock(XBlock):
         # the LMS side. In this case, we use `get_current_site()`, which _does_
         # return the incorrect site object. If all this fails, we fallback
         # to the DEFAULT_WHARF_URL.
+        from django.contrib.sites.models import Site
         try:
             # The name of the Site object will always match self.course_id.org.
             # See: https://git.io/vpilS
@@ -347,6 +354,9 @@ def update_wharf_url_cache(sender, **kwargs):
         # to fall back to one of the other methods of storing the URL.
         cache.delete(make_cache_key(instance.site.domain))
 
+def site_configuration_importer():
+    from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
+    return SiteConfiguration
 
 if is_site_configuration_enabled:
     post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)
