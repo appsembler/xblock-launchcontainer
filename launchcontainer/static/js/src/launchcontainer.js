@@ -121,7 +121,7 @@ function LaunchContainerXBlock(runtime, element) {
           } else if ($status_code === 503) {
             $msg = event.data.errors + " ";
           }
-          var $final_msg = "<p class='error'>An error occured in your request: " + $msg + "</p>" 
+          var $final_msg = "<p class='error'>An error occurred with your request: " + $msg + "</p>" 
                            + "<p> Please contact the administrator.</p>";
           $launch_notification.html($final_msg);
           $launch_notification.addClass('ui-state-error').removeClass('hide');
