@@ -7,4 +7,4 @@ install:
   - pip install 'django<2'
 
 script:
-  - py.test launchcontainer/tests.py
+  - python run_tests.py
