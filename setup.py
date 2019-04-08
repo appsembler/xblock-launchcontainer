@@ -36,7 +36,7 @@ setup(
     ],
     entry_points={
         'xblock.v1': [
-            'launchcontainer = launchcontainer:LaunchContainerXBlock',
+            'launchcontainer = launchcontainer.launchcontainer:LaunchContainerXBlock',
         ]
     },
     package_data=package_data("launchcontainer", ["static", "public"]),
