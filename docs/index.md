@@ -292,3 +292,10 @@ $ python -m unittest -v test_module
 To run the Python unit tests, you'll need the xblock-sdk. If you followed the steps above to install it, you should be able to run `python manage.py test` from the root of your xblock-sdk.
 
 [xblock-usage]: http://edx.readthedocs.io/projects/xblock-tutorial/en/latest/edx_platform/devstack.html
+
+# PyPI Release
+
+Creating a new release of the package and uploading it to PyPI is
+automated by TravisCI. It does expect certain conventions around
+branches and tags. Those are documnted in our internal wiki under the
+[Runbook: New PyPI Release](https://appsembler-infrastructure.appspot.com/post/runbook-new-pypi-release/) entry.
