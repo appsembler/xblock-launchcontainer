@@ -59,7 +59,7 @@ function LaunchContainerXBlock(runtime, element) {
               '<br /><br />Lab taking a long time to load? Try contacting ' + 
               '<a href="mailto:' + supportEmail + '">' + supportEmail + '</a>'
             );
-          }, 150*1000); // show message after 2min 30s
+          }, 120*1000); // show message after 2min
         }
 
         // Shut down the buttons.
