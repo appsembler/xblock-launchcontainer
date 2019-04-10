@@ -7,7 +7,8 @@ function LaunchContainerEditBlock(runtime, element) {
           'enable_container_resetting': $('#enable_container_resetting_input').val(),
           'project': $('#project_input').val(),
           'project_friendly': $('#project_friendly_input').val(),
-          'project_token': $('#project_token_input').val()
+          'project_token': $('#project_token_input').val(),
+          'support_email': $('#support_email_input').val(),
         };
 
         $.post(handlerUrl, JSON.stringify(data))
