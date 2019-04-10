@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/appsembler/xblock-launchcontainer.svg?branch=develop)](https://travis-ci.org/appsembler/xblock-launchcontainer)
+
 # xblock-launchcontainer
 
 Open edX XBlock to launch containers from Appsembler's Virtual Labs (Wharf).
