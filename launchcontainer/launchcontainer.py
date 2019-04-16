@@ -125,6 +125,13 @@ class LaunchContainerXBlock(XBlock):
         scope=Scope.content,
         help=(u"Enables students to reset/delete their container and start over")
     )
+    
+    support_email = String(
+        display_name='Tech support email',
+        default=u'',
+        scope=Scope.content,
+        help=(u"Email address of tech support for AVL labs."),
+    )
 
     @property
     def wharf_url(self, force=False):
@@ -229,6 +236,7 @@ class LaunchContainerXBlock(XBlock):
             'project': self.project,
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
+            'support_email': self.support_email,
             'user_email': self.user_email,
             'API_url': self.wharf_url,
             'API_delete_url': self.wharf_delete_url,
@@ -256,12 +264,14 @@ class LaunchContainerXBlock(XBlock):
                    (cls.project_friendly, 'string'),
                    (cls.project_token, 'string'),
                    (cls.enable_container_resetting, 'boolean'),
+                   (cls.support_email, 'string'),
                )
             )
 
             context = {'fields': edit_fields,
                        'API_url': self.wharf_url,
                        'API_delete_url': self.wharf_delete_url,
+                       'support_email': self.support_email,
                        'user_email': self.user_email
                        }
 
@@ -282,6 +292,7 @@ class LaunchContainerXBlock(XBlock):
             self.project = data['project'].strip()
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()
+            self.support_email = data['support_email'].strip()
             self.api_url = self.wharf_url
             self.api_delete_url = self.wharf_delete_url
 

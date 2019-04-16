@@ -22,8 +22,11 @@ function objectifyForm(formArray) {//serialize data function
 
 function LaunchContainerXBlock(runtime, element) {
 
+  var timeoutMessage;
+
   $(document).ready(
     function () {
+
       // Submit the data to the AVL server and process the response. //
       var $launcher = $('#launcher1'),
           $post_url = '{{ API_url|escapejs }}',
@@ -48,9 +51,21 @@ function LaunchContainerXBlock(runtime, element) {
         $project = event.target.project.value;
         $token = event.target.token.value;
 
+        var supportEmail = "{{ support_email }}";
+        clearTimeout(timeoutMessage);
+        if (supportEmail) {
+          timeoutMessage = setTimeout(function() {
+            $launch_notification.append(
+              '<br /><br />Lab taking a long time to load? Try contacting ' + 
+              '<a href="mailto:' + supportEmail + '">' + supportEmail + '</a>'
+            );
+          }, 120*1000); // show message after 2min
+        }
+
         // Shut down the buttons.
         event.preventDefault();
         $launcher_submit.disabled = true; 
+        $launcher_submit.prop('disabled', true)
         $launcher_submit.text('Launching ...');
         $launch_notification.html($waiting);
         $launch_notification.removeClass('hide')
@@ -106,12 +121,17 @@ function LaunchContainerXBlock(runtime, element) {
           // so we just need to hide the form.
           $launcher_form.addClass('hide');
         } else if(event.data.status === 'deploymentError') {
+          clearTimeout(timeoutMessage);
           var $status_code = event.data.status_code;
           var $msg;
+          var errors = event.data.errors || event.data.detail || "";
           if ($status_code === 400) {
-            var $errors = event.data.errors;
-            for (i=0; i<$errors.length; i++) { 
-              $msg = $errors[i][0] + ": " + $errors[i][1][0] + " "; 
+            if (errors instanceof Array) {
+              for (i=0; i<errors.length; i++) { 
+                $msg = errors[i][0] + ": " + errors[i][1][0] + " "; 
+              }
+            } else {
+              $msg = errors + " ";
             }
           } else if ($status_code === 403) {
             $msg = "Your request failed because the token sent with "
@@ -119,10 +139,16 @@ function LaunchContainerXBlock(runtime, element) {
           } else if ($status_code === 404) {
             $msg = "That project was not found. "; 
           } else if ($status_code === 503) {
-            $msg = event.data.errors + " ";
+            $msg = errors + " ";
           }
-          var $final_msg = "<p class='error'>An error occurred with your request: " + $msg + "</p>" 
-                           + "<p> Please contact the administrator.</p>";
+          var supportEmail = "{{ support_email }}";
+          var $final_msg = "<p class='error'>An error occurred with your request: " + $msg + "</p>"
+                           + "<p> Please contact the administrator";
+          if (supportEmail) {
+            $final_msg += ' at <a href="' + supportEmail + '">' + supportEmail + '.</a>';
+          }
+          $final_msg += "</p>"
+
           $launch_notification.html($final_msg);
           $launch_notification.addClass('ui-state-error').removeClass('hide');
         }

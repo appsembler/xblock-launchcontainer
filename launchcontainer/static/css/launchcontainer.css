@@ -26,3 +26,6 @@ div#launcher_notification p {
   padding: 10px;
 }
 
+#launcher_submit:disabled, #launcher_submit[disabled] {
+  color: rgba(0, 0, 0, 0.8);
+}
