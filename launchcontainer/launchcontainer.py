@@ -125,10 +125,10 @@ class LaunchContainerXBlock(XBlock):
         scope=Scope.content,
         help=(u"Enables students to reset/delete their container and start over")
     )
-    
+
     support_email = String(
         display_name='Tech support email',
-        default=u'',
+        default=settings.EDXAPP_TECH_SUPPORT_EMAIL,
         scope=Scope.content,
         help=(u"Email address of tech support for AVL labs."),
     )
