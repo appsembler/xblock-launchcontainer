@@ -31,7 +31,7 @@ class DummyResource(object):
     def __eq__(self, other):
         return isinstance(other, DummyResource) and self.path == other.path
 
-@override_settings(EDXAPP_TECH_SUPPORT_EMAIL="support@appsembler.com")
+@override_settings(TECH_SUPPORT_EMAIL="support@appsembler.com")
 class LaunchContainerXBlockTests(unittest.TestCase):
     """
     Create a launchcontainer block with mock data.
