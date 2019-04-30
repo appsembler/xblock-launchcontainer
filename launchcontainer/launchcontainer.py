@@ -128,7 +128,7 @@ class LaunchContainerXBlock(XBlock):
 
     support_email = String(
         display_name='Tech support email',
-        default=getattr(settings, "TECH_SUPPORT_EMAIL", "")
+        default=getattr(settings, "TECH_SUPPORT_EMAIL", ""),
         scope=Scope.content,
         help=(u"Email address of tech support for AVL labs."),
     )
