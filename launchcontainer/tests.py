@@ -31,7 +31,6 @@ class DummyResource(object):
     def __eq__(self, other):
         return isinstance(other, DummyResource) and self.path == other.path
 
-
 class LaunchContainerXBlockTests(unittest.TestCase):
     """
     Create a launchcontainer block with mock data.
