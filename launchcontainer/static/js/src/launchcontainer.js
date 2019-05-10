@@ -145,7 +145,7 @@ function LaunchContainerXBlock(runtime, element) {
           var $final_msg = "<p class='error'>An error occurred with your request: " + $msg + "</p>"
                            + "<p> Please contact the administrator";
           if (supportEmail) {
-            $final_msg += ' at <a href="' + supportEmail + '">' + supportEmail + '.</a>';
+            $final_msg += ' at <a href="mailto:' + supportEmail + '">' + supportEmail + '.</a>';
           }
           $final_msg += "</p>"
 
