@@ -320,7 +320,7 @@ def load_resource(resource_path):  # pragma: NO COVER
     """
     resource_content = pkg_resources.resource_string(__name__, resource_path)
 
-    return unicode(resource_content)
+    return unicode(resource_content)  # noqa: F821
 
 
 def render_template(template_path, context=None):  # pragma: NO COVER
