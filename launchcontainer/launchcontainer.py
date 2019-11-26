@@ -258,14 +258,14 @@ class LaunchContainerXBlock(XBlock):
                 return data if data is not None else ''
 
             edit_fields = (
-               (field, none_to_empty(getattr(self, field.name)), validator)
-               for field, validator in (
-                   (cls.project, 'string'),
-                   (cls.project_friendly, 'string'),
-                   (cls.project_token, 'string'),
-                   (cls.enable_container_resetting, 'boolean'),
-                   (cls.support_email, 'string'),
-               )
+                (field, none_to_empty(getattr(self, field.name)), validator)
+                for field, validator in (
+                    (cls.project, 'string'),
+                    (cls.project_friendly, 'string'),
+                    (cls.project_token, 'string'),
+                    (cls.enable_container_resetting, 'boolean'),
+                    (cls.support_email, 'string'),
+                )
             )
 
             context = {'fields': edit_fields,

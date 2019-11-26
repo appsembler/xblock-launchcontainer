@@ -1,0 +1,11 @@
+[flake8] 
+exclude = .git,__pycache__,docs,migrations,node_modules,settings,deploy
+max-line-length = 99
+# ignore E265: "block comment should start with '# '" — That's a little too cumbersome to deal with.
+# ignore E266: "too many leading '#' for block comment" — Really, let's be free with our block comments.
+# ignore W504: "Line break occurred after a binary operator" — This style is overbearing without much benefit.
+# ignore D***: Don't waste energy on enforcing http://www.pydocstyle.org/en/latest/error_codes.html, except the
+#              following one:
+# select D300: Use """triple double quotes""" /in docstrings/
+ignore = E266, E265, W504, D
+select = C,E,F,W,D300
