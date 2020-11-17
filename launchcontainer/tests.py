@@ -55,7 +55,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         """
         Creates a launchcontainer XBlock for testing purpose.
         """
-        from launchcontainer import LaunchContainerXBlock as cls
+        from .launchcontainer import LaunchContainerXBlock as cls
         field_data = DictFieldData(kw)
         block = cls(self.runtime, field_data, self.scope_ids)
         block.location = Location(

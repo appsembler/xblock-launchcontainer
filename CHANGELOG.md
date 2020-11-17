@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- python3 and Django 2.x support
+
 ## [2.2.2] - 2019-05-14
 ### Fixed
 - Fixed the mailto: link

@@ -5,12 +5,10 @@ python:
 install:
   - pip install tox
 
-script:
-  - python run_tests.py
-
 env:
   - TOXENV=flake8
-  - TOXENV=py27
+  - TOXENV=py27-django111
+  - TOXENV=py3-django2
 
 script:
   - tox $ARGS
