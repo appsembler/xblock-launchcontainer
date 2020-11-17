@@ -68,7 +68,7 @@ def get_api_root_url(url):
 
 def is_valid(url):
     """Return True if this URL is valid."""
-    if url is None:
+    if not url:
         return False
     validator = validators.URLValidator()
     try:
