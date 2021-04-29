@@ -7,3 +7,4 @@ workbench.*
 node_modules/
 geckodriver.log
 .cache
+.tox

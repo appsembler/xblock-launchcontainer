@@ -3,11 +3,15 @@ python:
   - "2.7"
 
 install:
-  - pip install -r requirements/test.txt
-  - pip install 'django<2'
+  - pip install tox
+
+env:
+  - TOXENV=flake8
+  - TOXENV=py27-django111
+  - TOXENV=py3-django2
 
 script:
-  - python run_tests.py
+  - tox $ARGS
 
 deploy:
   provider: pypi

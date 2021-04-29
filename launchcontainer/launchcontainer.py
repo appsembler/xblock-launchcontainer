@@ -5,7 +5,11 @@
 
 import pkg_resources
 import logging
-from urlparse import urlparse
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    # python2 compatability
+    from urlparse import urlparse
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -64,6 +68,8 @@ def get_api_root_url(url):
 
 def is_valid(url):
     """Return True if this URL is valid."""
+    if not url:
+        return False
     validator = validators.URLValidator()
     try:
         validator(url)
@@ -98,39 +104,39 @@ class LaunchContainerXBlock(XBlock):
 
     project = String(
         display_name='Project name',
-        default=u'(EDIT THIS COMPONENT TO SET PROJECT NAME)',
+        default='(EDIT THIS COMPONENT TO SET PROJECT NAME)',
         scope=Scope.content,
-        help=(u"The name of the project as defined for the "
+        help=("The name of the project as defined for the "
               "Appsembler Virtual Labs (AVL) API."),
     )
 
     project_friendly = String(
         display_name='Project Friendly name',
-        default=u'',
+        default='',
         scope=Scope.content,
-        help=(u"The name of the container's Project as displayed to the end "
+        help=("The name of the container's Project as displayed to the end "
               "user"),
     )
 
     project_token = String(
         display_name='Project Token',
-        default=u'',
+        default='',
         scope=Scope.content,
-        help=(u"This is a unique token that can be found in the AVL dashboard")
+        help=("This is a unique token that can be found in the AVL dashboard")
     )
 
     enable_container_resetting = Boolean(
         display_name='Enable container resetting',
         default=False,
         scope=Scope.content,
-        help=(u"Enables students to reset/delete their container and start over")
+        help=("Enables students to reset/delete their container and start over")
     )
 
     support_email = String(
         display_name='Tech support email',
         default=getattr(settings, "TECH_SUPPORT_EMAIL", ""),
         scope=Scope.content,
-        help=(u"Email address of tech support for AVL labs."),
+        help=("Email address of tech support for AVL labs."),
     )
 
     @property
@@ -284,7 +290,7 @@ class LaunchContainerXBlock(XBlock):
 
     @XBlock.json_handler
     def studio_submit(self, data, suffix=''):
-        logger.info(u'Received data: {}'.format(data))
+        logger.info('Received data: {}'.format(data))
 
         # TODO: This could use some better validation.
         try:
@@ -319,8 +325,7 @@ def load_resource(resource_path):  # pragma: NO COVER
     Gets the content of a resource
     """
     resource_content = pkg_resources.resource_string(__name__, resource_path)
-
-    return unicode(resource_content)
+    return resource_content.decode('utf-8')
 
 
 def render_template(template_path, context=None):  # pragma: NO COVER

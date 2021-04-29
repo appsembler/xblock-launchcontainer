@@ -31,6 +31,7 @@ class DummyResource(object):
     def __eq__(self, other):
         return isinstance(other, DummyResource) and self.path == other.path
 
+
 class LaunchContainerXBlockTests(unittest.TestCase):
     """
     Create a launchcontainer block with mock data.
@@ -54,7 +55,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         """
         Creates a launchcontainer XBlock for testing purpose.
         """
-        from launchcontainer import LaunchContainerXBlock as cls
+        from .launchcontainer import LaunchContainerXBlock as cls
         field_data = DictFieldData(kw)
         block = cls(self.runtime, field_data, self.scope_ids)
         block.location = Location(
@@ -124,8 +125,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
                          STATIC_FILES['studio']['template'])
 
         # Confirm that the context was set properly on the XBlock instance.
-        cls = type(block)
-        context = render_template.call_args_list[0][0][1]
+        render_template.call_args_list[0][0][1]
         # self.assertEqual(tuple(context['fields']), (
         #     (cls.project, 'Foo project', 'string'),
         #     (cls.project_friendly, 'Foo Project Friendly Name', 'string'),

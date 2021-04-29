@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed static files resource decoding as part of Python3 support
+
+## [2.3.0] - 2020-11-17
+### Added
+- python3 and Django 2.x support
+
 ## [2.2.2] - 2019-05-14
 ### Fixed
 - Fixed the mailto: link
@@ -30,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 (sorry, we didn't keep a proper changelog previous to this release)
 
-[Unreleased]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.2.2...HEAD
+[Unreleased]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.3.0...HEAD
+[2.2.1]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.3.0...v2.2.2
 [2.2.1]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.1.13...v2.2.0
