@@ -1,6 +1,4 @@
-[![Build Status](
-
-https://github.com/appsembler/xblock-launchcontainer/workflows/Tox/badge.svg?branch=master)](https://github.com/appsembler/xblock-launchcontainer/actions?workflow=Tox)
+[![Build Status](https://github.com/appsembler/xblock-launchcontainer/workflows/Tox/badge.svg?branch=master)](https://github.com/appsembler/xblock-launchcontainer/actions?workflow=Tox)
 
 # xblock-launchcontainer
 
