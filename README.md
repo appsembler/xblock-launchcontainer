@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/appsembler/xblock-launchcontainer.svg?branch=develop)](https://travis-ci.org/appsembler/xblock-launchcontainer)
+[![Build Status](
+
+https://github.com/appsembler/xblock-launchcontainer/workflows/Tox/badge.svg?branch=master)](https://github.com/appsembler/xblock-launchcontainer/actions?workflow=Tox)
 
 # xblock-launchcontainer
 
