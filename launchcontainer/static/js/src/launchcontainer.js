@@ -52,15 +52,15 @@ function LaunchContainerXBlock(runtime, element) {
         $token = event.target.token.value;
 
         var supportEmail = "{{ support_email }}";
-        clearTimeout(timeoutMessage);
-        if (supportEmail) {
-          timeoutMessage = setTimeout(function() {
-            $launch_notification.append(
-              '<br /><br />Lab taking a long time to load? Try contacting ' + 
-              '<a href="mailto:' + supportEmail + '">' + supportEmail + '</a>'
-            );
-          }, 120*1000); // show message after 2min
-        }
+        timeoutMessage = setTimeout(function () { 
+          var $support_link = '<a href="/help" rel="noreferrer" target="_blank">Contact us for support.</a>'; 
+          if (supportEmail) {
+            var $support_link = 'Try contacting <a href="mailto:' + supportEmail + '">' + supportEmail + '</a>'; 
+          } 
+          $launch_notification.append(
+            '<br /><br />Lab taking a long time to load? Try contacting ' + $support_link
+          ); 
+        }, 120 * 1000); // show message after 2min
 
         // Shut down the buttons.
         event.preventDefault();
@@ -146,6 +146,8 @@ function LaunchContainerXBlock(runtime, element) {
                            + "<p> Please contact the administrator";
           if (supportEmail) {
             $final_msg += ' at <a href="mailto:' + supportEmail + '">' + supportEmail + '.</a>';
+          } else {
+            $final_msg += 'at <a href="/help" rel="noreferrer" target="_blank">help section</a>';
           }
           $final_msg += "</p>"
 
