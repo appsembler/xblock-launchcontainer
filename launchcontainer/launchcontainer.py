@@ -134,7 +134,7 @@ class LaunchContainerXBlock(XBlock):
 
     support_email = String(
         display_name='Tech support email',
-        default=getattr(settings, "TECH_SUPPORT_EMAIL", ""),
+        default=None,
         scope=Scope.content,
         help=("Email address of tech support for AVL labs."),
     )
@@ -298,7 +298,7 @@ class LaunchContainerXBlock(XBlock):
             self.project = data['project'].strip()
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()
-            self.support_email = data['support_email'].strip()
+            self.support_email = data.get('support_email', '').strip() or None
             self.api_url = self.wharf_url
             self.api_delete_url = self.wharf_delete_url
 
