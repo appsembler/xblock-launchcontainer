@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.2] - 2021-07-30
+### Added
+- Update support message with `help` page when support email is not set
+
 ## [2.3.1] - 2021-04-29
 ### Fixed
 - Fixed static files resource decoding as part of Python3 support
@@ -38,8 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 (sorry, we didn't keep a proper changelog previous to this release)
 
-[Unreleased]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.3.1...HEAD
-[2.3.1]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.3.1...HEAD
+[Unreleased]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.3.2...HEAD
+[2.3.2]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.3.2...HEAD
+[2.3.1]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.3.1...v2.3.2
 [2.3.0]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.3.0...v2.3.1
 [2.2.2]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.2.2...v2.3.0
 [2.2.1]: https://github.com/appsembler/xblock-launchcontainer/compare/v2.2.1...v2.2.2
