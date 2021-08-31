@@ -52,9 +52,10 @@ function LaunchContainerXBlock(runtime, element) {
         $token = event.target.token.value;
 
         var supportEmail = "{{ support_email }}";
+        var supportURL = "{{ support_url }}"
         clearTimeout(timeoutMessage);
         timeoutMessage = setTimeout(function () { 
-          var $support_link = '<a href="/help" rel="noreferrer" target="_blank">Contact us for support.</a>'; 
+          var $support_link = '<a href="'+ supportURL +'" rel="noreferrer" target="_blank">Contact us for support.</a>'; 
           if (supportEmail) {
             var $support_link = 'Try contacting <a href="mailto:' + supportEmail + '">' + supportEmail + '</a>'; 
           } 

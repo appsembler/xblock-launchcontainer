@@ -23,6 +23,7 @@ from crum import get_current_user
 from xblock.core import XBlock
 from xblock.fields import Boolean, Scope, String
 from xblock.fragment import Fragment
+from xblockutils import settings as xblocksettings
 
 try:
     from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
@@ -55,6 +56,7 @@ STATIC_FILES = {
         'js_class': 'LaunchContainerXBlock'
     }
 }
+DEFAULT_SUPPORT_URL = '/help'
 
 
 def make_cache_key(site_domain):
@@ -91,7 +93,8 @@ def _add_static(fragment, type, context):
 
 
 @XBlock.needs('user')
-class LaunchContainerXBlock(XBlock):
+@XBlock.wants('settings')
+class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
     """
     Provide a Fragment with associated Javascript to display to
     Students a button that will launch a configurable external course
@@ -231,6 +234,13 @@ class LaunchContainerXBlock(XBlock):
 
         return email
 
+    @property
+    def support_url(self):
+        if 'support_url' in self.get_xblock_settings(default={}):
+            return lcsettings['support_url']
+        else:
+            return DEFAULT_SUPPORT_URL
+
     def student_view(self, context=None):
         """
         The primary view of the LaunchContainerXBlock, shown to students
@@ -243,6 +253,7 @@ class LaunchContainerXBlock(XBlock):
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
             'support_email': self.support_email,
+            'support_url': self.support_url,
             'user_email': self.user_email,
             'API_url': self.wharf_url,
             'API_delete_url': self.wharf_delete_url,
