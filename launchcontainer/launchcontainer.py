@@ -137,7 +137,7 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
 
     support_email = String(
         display_name='Tech support email',
-        default=None,
+        default='',
         scope=Scope.content,
         help=("Email address of tech support for AVL labs."),
     )
@@ -244,12 +244,13 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
         The primary view of the LaunchContainerXBlock, shown to students
         when viewing courses.
         """
+        support_email = self.support_email if self.support_email is not None else ''
         context = {
             'enable_container_resetting': self.enable_container_resetting,
             'project': self.project,
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
-            'support_email': getattr(self, 'support_email', ''),
+            'support_email': support_email,
             'support_url': self.support_url,
             'user_email': self.user_email,
             'API_url': self.wharf_url,
@@ -306,7 +307,7 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
             self.project = data['project'].strip()
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()
-            self.support_email = data.get('support_email', '').strip() or None
+            self.support_email = data.get('support_email', '')
             self.api_url = self.wharf_url
             self.api_delete_url = self.wharf_delete_url
 

@@ -44,7 +44,6 @@ function LaunchContainerXBlock(runtime, element) {
           $msg_project_not_found = 'That project was not found.',
           $msg_long_time='Lab taking a long time to load? ',
           $msg_lab_reset = 'Your lab has been reset',
-          $msg_contact_admin = 'Contact your administrator.',
           $support_email = '{{ support_email }}',
           $support_URL = '{{ support_url }}',
           $support_html_URL = '<a href="'+ $support_URL +'" rel="noreferrer" target="_blank">Contact us for support.</a>',
@@ -145,7 +144,7 @@ function LaunchContainerXBlock(runtime, element) {
           } else if ($status_code === 503) {
             $msg = errors + " ";
           }
-          var $final_msg = $msg_general_error + $msg + $msg_contact_admin;
+          var $final_msg = $msg_general_error + $msg;
           $launch_notification.html("<p class='error'>"+ $final_msg + "</p><p>" + $support_link + "</p>");
           $launch_notification.addClass('ui-state-error').removeClass('hide');
         }
