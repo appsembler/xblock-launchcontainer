@@ -42,7 +42,7 @@ function LaunchContainerXBlock(runtime, element) {
           $msg_general_error = 'An error occurred with your request: ',
           $msg_bad_token= 'Your request failed because the token sent with your request is invalid. ',
           $msg_project_not_found = 'That project was not found.',
-          $msg_long_time='Lab taking a long time to load? ',
+          $msg_long_time='Lab taking too long to load? ',
           $msg_lab_reset = 'Your lab has been reset',
           $support_email = '{{ support_email }}',
           $support_URL = '{{ support_url }}',
