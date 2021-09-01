@@ -236,10 +236,8 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
 
     @property
     def support_url(self):
-        if 'support_url' in self.get_xblock_settings(default={}):
-            return lcsettings['support_url']
-        else:
-            return DEFAULT_SUPPORT_URL
+        lcsettings = self.get_xblock_settings(default={})
+        return lcsettings.get('support_url', DEFAULT_SUPPORT_URL)
 
     def student_view(self, context=None):
         """
