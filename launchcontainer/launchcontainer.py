@@ -237,12 +237,12 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
 
     @property
     def support_url(self):
-        lcsettings = self.get_xblock_settings(default={})
+        lcsettings = self.get_xblock_settings()
         return lcsettings.get('support_url', DEFAULT_SUPPORT_URL)
 
     @property
     def timeout_secs(self):
-        lcsettings = self.get_xblock_settings(default={})
+        lcsettings = self.get_xblock_settings()
         return lcsettings.get('timeout_seconds', DEFAULT_LAUNCHER_TIMEOUT_SECONDS)
 
     def student_view(self, context=None):
