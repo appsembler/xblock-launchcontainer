@@ -35,9 +35,10 @@ function LaunchContainerXBlock(runtime, element) {
           $launcher_submit_text = $launcher_submit.text(),
           $launcher_reset = $('#launcher_reset'),
           $launcher_email = $('#launcher_email'),
+          $timeout_secs = {{ timeout_seconds }},
           $launch_notification = $('#launcher_notification'), 
           $msg_launching = 'Launching ...',
-          $msg_waiting = 'Your request for a lab is being processed, and may take up to 90 seconds to start. '
+          $msg_waiting = 'Your request for a lab is being processed, and may take up to ' + $timeout_secs ' seconds to start. '
           + 'If you are having issues, please contact the administrator.',
           $msg_general_error = 'An error occurred with your request: ',
           $msg_bad_token= 'Your request failed because the token sent with your request is invalid. ',
@@ -65,7 +66,7 @@ function LaunchContainerXBlock(runtime, element) {
         clearTimeout(timeoutMessage);
         timeoutMessage = setTimeout(function () {           
           $launch_notification.append('<br/><br/>'+ $msg_long_time + $support_link); 
-        }, 120 * 1000); // show message after 2min
+        }, $timeout_secs * 1000);
 
         // Shut down the buttons.
         event.preventDefault();

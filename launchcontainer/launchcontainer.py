@@ -57,6 +57,7 @@ STATIC_FILES = {
     }
 }
 DEFAULT_SUPPORT_URL = '/help'
+DEFAULT_LAUNCHER_TIMEOUT_SECONDS = 120
 
 
 def make_cache_key(site_domain):
@@ -239,6 +240,11 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
         lcsettings = self.get_xblock_settings(default={})
         return lcsettings.get('support_url', DEFAULT_SUPPORT_URL)
 
+    @property
+    def timeout_secs(self):
+        lcsettings = self.get_xblock_settings(default={})
+        return lcsettings.get('timeout_seconds', DEFAULT_LAUNCHER_TIMEOUT_SECONDS)
+
     def student_view(self, context=None):
         """
         The primary view of the LaunchContainerXBlock, shown to students
@@ -252,6 +258,7 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
             'project_token': self.project_token,
             'support_email': support_email,
             'support_url': self.support_url,
+            'timeout_seconds': self.timeout_secs,
             'user_email': self.user_email,
             'API_url': self.wharf_url,
             'API_delete_url': self.wharf_delete_url,
