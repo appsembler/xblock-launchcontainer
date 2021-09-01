@@ -48,7 +48,7 @@ function LaunchContainerXBlock(runtime, element) {
           $support_email = '{{ support_email }}',
           $support_URL = '{{ support_url }}',
           $support_html_URL = '<a href="'+ $support_URL +'" rel="noreferrer" target="_blank">Contact us for support.</a>',
-          $support_html_email = 'Contact <a href="mailto:' + $support_email + '">' + $support_email + ' for support.</a>',
+          $support_html_email = 'Contact <a href="mailto:' + $support_email + '">' + $support_email + '</a> for support.',
           $support_link = ($support_email) ? $support_html_email : $support_html_URL; 
 
       // This is for the xblock-sdk: If there is no email addy, 

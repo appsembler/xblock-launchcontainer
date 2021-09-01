@@ -29,3 +29,12 @@ div#launcher_notification p {
 #launcher_submit:disabled, #launcher_submit[disabled] {
   color: rgba(0, 0, 0, 0.8);
 }
+
+.xblock-student_view-launchcontainer .ui-state-error a {
+  font-weight: bold;
+}
+
+.xblock-student_view-launchcontainer .ui-state-error a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
