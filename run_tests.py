@@ -33,5 +33,6 @@ def main():
     call_command('migrate')
     call_command('test')
 
+
 if __name__ == '__main__':
     main()
