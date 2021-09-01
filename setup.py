@@ -32,7 +32,8 @@ setup(
     ],
     install_requires=[
         'XBlock',
-        'django-crum'
+        'django-crum',
+        'xblock-utils'
     ],
     entry_points={
         'xblock.v1': [
