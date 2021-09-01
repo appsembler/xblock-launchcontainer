@@ -5,11 +5,7 @@
 
 import pkg_resources
 import logging
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    # python2 compatability
-    from urlparse import urlparse
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.sites.models import Site
