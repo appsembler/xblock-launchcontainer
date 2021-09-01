@@ -34,7 +34,11 @@ div#launcher_notification p {
   font-weight: bold;
 }
 
+.xblock-student_view-launchcontainer .ui-state-error a,
+.xblock-student_view-launchcontainer .ui-state-error a:visited {
+  color:  #fff !important;
+}
+
 .xblock-student_view-launchcontainer .ui-state-error a:hover {
-  color: #fff;
   text-decoration: underline;
 }
