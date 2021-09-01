@@ -244,13 +244,12 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
         The primary view of the LaunchContainerXBlock, shown to students
         when viewing courses.
         """
-
         context = {
             'enable_container_resetting': self.enable_container_resetting,
             'project': self.project,
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
-            'support_email': self.support_email,
+            'support_email': getattr(self, 'support_email', ''),
             'support_url': self.support_url,
             'user_email': self.user_email,
             'API_url': self.wharf_url,
