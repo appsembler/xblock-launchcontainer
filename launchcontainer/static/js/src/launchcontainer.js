@@ -38,8 +38,7 @@ function LaunchContainerXBlock(runtime, element) {
           $timeout_secs = {{ timeout_seconds }},
           $launch_notification = $('#launcher_notification'), 
           $msg_launching = 'Launching ...',
-          $msg_waiting = 'Your request for a lab is being processed, and may take up to {{ timeout_seconds }} seconds to start. '
-          + 'If you are having issues, please contact the administrator.',
+          $msg_waiting = 'Your request for a lab is being processed, and may take up to {{ timeout_seconds }} seconds to start.',
           $msg_general_error = 'An error occurred with your request: ',
           $msg_bad_token= 'Your request failed because the token sent with your request is invalid. ',
           $msg_project_not_found = 'That project was not found.',
