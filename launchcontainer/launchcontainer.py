@@ -136,7 +136,11 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
         display_name='Tech support email',
         default='',
         scope=Scope.content,
-        help=("Email address of tech support for AVL labs."),
+        help=(
+            "Email address of tech support for AVL labs. If set, help messages displayed "
+            "in case of error or timeout will use this address for a mailto: link.  If unset, "
+            "a link to the configured support URL (defaulting to /help) will be used instead."
+        ),
     )
 
     @property
