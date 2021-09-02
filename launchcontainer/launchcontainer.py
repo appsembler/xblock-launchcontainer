@@ -220,7 +220,6 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
     # TODO: Cache this property?
     @property
     def user_email(self):
-
         user = get_current_user()
         if hasattr(user, 'email') and user.email:
             return user.email
