@@ -32,12 +32,23 @@ function LaunchContainerXBlock(runtime, element) {
           $post_url = '{{ API_url|escapejs }}',
           $launcher_form = $('#launcher_form'),
           $launcher_submit = $('#launcher_submit'),
-          launcher_submit_text = $launcher_submit.text(),
+          $launcher_submit_text = $launcher_submit.text(),
           $launcher_reset = $('#launcher_reset'),
           $launcher_email = $('#launcher_email'),
+          $timeout_secs = {{ timeout_seconds }},
           $launch_notification = $('#launcher_notification'), 
-          $waiting = 'Your request for a lab is being processed, and may take up to 90 seconds to start. '
-          + 'If you are having issues, please contact the administrator.'
+          $msg_launching = 'Launching ...',
+          $msg_waiting = 'Your request for a lab is being processed, and may take up to {{ timeout_seconds }} seconds to start.',
+          $msg_general_error = 'An error occurred with your request: ',
+          $msg_bad_token= 'Your request failed because the token sent with your request is invalid. ',
+          $msg_project_not_found = 'That project was not found.',
+          $msg_long_time='Lab taking too long to load? ',
+          $msg_lab_reset = 'Your lab has been reset',
+          $support_email = '{{ support_email }}',
+          $support_URL = '{{ support_url }}',
+          $support_html_URL = '<a href="'+ $support_URL +'" rel="noreferrer" target="_blank">Contact us for support.</a>',
+          $support_html_email = 'Contact <a href="mailto:' + $support_email + '">' + $support_email + '</a> for support.',
+          $support_link = ($support_email) ? $support_html_email : $support_html_URL; 
 
       // This is for the xblock-sdk: If there is no email addy, 
       // you can enter it manually.
@@ -51,24 +62,17 @@ function LaunchContainerXBlock(runtime, element) {
         $project = event.target.project.value;
         $token = event.target.token.value;
 
-        var supportEmail = "{{ support_email }}";
         clearTimeout(timeoutMessage);
-        timeoutMessage = setTimeout(function () { 
-          var $support_link = '<a href="/help" rel="noreferrer" target="_blank">Contact us for support.</a>'; 
-          if (supportEmail) {
-            var $support_link = 'Try contacting <a href="mailto:' + supportEmail + '">' + supportEmail + '</a>'; 
-          } 
-          $launch_notification.append(
-            '<br /><br />Lab taking a long time to load? Try contacting ' + $support_link
-          ); 
-        }, 120 * 1000); // show message after 2min
+        timeoutMessage = setTimeout(function () {           
+          $launch_notification.append('<br/><br/>'+ $msg_long_time + $support_link); 
+        }, $timeout_secs * 1000);
 
         // Shut down the buttons.
         event.preventDefault();
         $launcher_submit.disabled = true; 
         $launcher_submit.prop('disabled', true)
-        $launcher_submit.text('Launching ...');
-        $launch_notification.html($waiting);
+        $launcher_submit.text($msg_launching);
+        $launch_notification.html($msg_waiting);
         $launch_notification.removeClass('hide')
                             .removeClass('ui-state-error')
                             .removeClass('ui-state-notification');
@@ -97,10 +101,9 @@ function LaunchContainerXBlock(runtime, element) {
             success: function (data) {
               $launcher_form.removeClass('hide');
               $launch_notification.html('<p class="verify-button-success-text" style="font-weight: bold; color: #008200;">\n' +
-                '    Your lab has been reset' +
-                '</p>');
+                $msg_lab_reset + '</p>');
               $launcher_reset.text('Reset');
-              $launcher_submit.text(launcher_submit_text);
+              $launcher_submit.text($launcher_submit_text);
               $launcher_submit.disabled = false;
               $launcher_reset.disabled = false;
             }
@@ -135,24 +138,14 @@ function LaunchContainerXBlock(runtime, element) {
               $msg = errors + " ";
             }
           } else if ($status_code === 403) {
-            $msg = "Your request failed because the token sent with "
-                        +"your request is invalid. "
+            $msg = $msg_bad_token
           } else if ($status_code === 404) {
-            $msg = "That project was not found. "; 
+            $msg = $msg_project_not_found; 
           } else if ($status_code === 503) {
             $msg = errors + " ";
           }
-          var supportEmail = "{{ support_email }}";
-          var $final_msg = "<p class='error'>An error occurred with your request: " + $msg + "</p>"
-                           + "<p> Please contact the administrator";
-          if (supportEmail) {
-            $final_msg += ' at <a href="mailto:' + supportEmail + '">' + supportEmail + '.</a>';
-          } else {
-            $final_msg += 'at <a href="/help" rel="noreferrer" target="_blank">help section</a>';
-          }
-          $final_msg += "</p>"
-
-          $launch_notification.html($final_msg);
+          var $final_msg = $msg_general_error + $msg;
+          $launch_notification.html("<p class='error'>"+ $final_msg + "</p><p>" + $support_link + "</p>");
           $launch_notification.addClass('ui-state-error').removeClass('hide');
         }
       }, false);

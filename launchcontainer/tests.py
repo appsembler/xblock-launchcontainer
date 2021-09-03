@@ -32,6 +32,11 @@ class DummyResource(object):
         return isinstance(other, DummyResource) and self.path == other.path
 
 
+class DummyUser(object):
+    def __init__(self, email):
+        self.emails = [email, ]
+
+
 class LaunchContainerXBlockTests(unittest.TestCase):
     """
     Create a launchcontainer block with mock data.
@@ -45,11 +50,23 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         self.course_id = SlashSeparatedCourseKey.from_deprecated_string(
             'foo/bar/baz'
         )
-        self.runtime = mock.Mock(anonymous_student_id='MOCK')
         self.scope_ids = mock.Mock()
+        self.custom_xblock_config = {'timeout_seconds': 60, 'support_url': '/support'}
+        self.default_xblock_config = {}
+        self.user_service = mock.Mock()
+        self.user_service.get_current_user = mock.Mock(
+            return_value=DummyUser(email='user@example.com')
+        )
+        self.runtime = mock.Mock()
 
     def tearDown(self):
         cache.clear()
+
+    def settings_val_by_custom(self, key, default):
+        return self.custom_xblock_config.get(key, default)
+
+    def settings_val_by_default(self, key, default):
+        return self.default_xblock_config.get(key, default)
 
     def make_one(self, display_name=None, **kw):
         """
@@ -71,6 +88,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         block.project = 'Foo project'
         block.project_friendly = 'Foo Project Friendly Name'
         block.project_token = 'Foo token'
+        block.support_email = 'support@example.com'
         return block
 
     @mock.patch('launchcontainer.launchcontainer.load_resource', DummyResource)
@@ -81,6 +99,9 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         """
         Test student view renders correctly.
         """
+        # mock user service
+        self.runtime.service = mock.Mock(return_value=self.user_service)
+
         block = self.make_one("Custom name")
         fragment = block.student_view()
         self.assertEqual(render_template.call_count, 3)
@@ -94,8 +115,9 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         self.assertEqual(context['project'], 'Foo project')
         self.assertEqual(context['project_friendly'], 'Foo Project Friendly Name')
         self.assertEqual(context['project_token'], 'Foo token')
-        self.assertEqual(context['user_email'], block.runtime.service().get_current_user().email)
+        self.assertEqual(context['user_email'], 'user@example.com')
         self.assertEqual(context['API_url'], block.wharf_url)
+        self.assertEqual(context['support_email'], 'support@example.com')
 
         # Confirm that the css was included.
         css_template_arg = render_template.call_args_list[1][0][0]
@@ -105,6 +127,30 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         javascript_template_arg = render_template.call_args_list[2][0][0]
         self.assertEqual(javascript_template_arg, STATIC_FILES['student']['js'])
         fragment.initialize_js.assert_called_once_with(STATIC_FILES['student']['js_class'])
+
+    @mock.patch('launchcontainer.launchcontainer.load_resource', DummyResource)
+    @mock.patch('launchcontainer.launchcontainer.LaunchContainerXBlock.get_xblock_settings')
+    @mock.patch('launchcontainer.launchcontainer.render_template')
+    @mock.patch('launchcontainer.launchcontainer.Fragment')
+    def test_xblock_properties_from_settings(self, fragment, render_template, get_xblock_settings):
+        """Test that if settings are configured they are used in favor of defaults.
+        For support_url, timeout_seconds.
+        """
+        # default settings case
+        get_xblock_settings().get = mock.Mock(side_effect=self.settings_val_by_default)
+        block = self.make_one("Custom name")
+        fragment = block.student_view()  # noqa: F841
+        context = render_template.call_args_list[-1][0][1]
+        self.assertEqual(context['support_url'], '/help')
+        self.assertEqual(context['timeout_seconds'], 120)
+
+        # custom settings case
+        get_xblock_settings().get = mock.Mock(side_effect=self.settings_val_by_custom)
+        block2 = self.make_one("Custom name 2")
+        fragment = block2.student_view()  # noqa: F841
+        context = render_template.call_args_list[-1][0][1]
+        self.assertEqual(context['support_url'], '/support')
+        self.assertEqual(context['timeout_seconds'], 60)
 
     @mock.patch('launchcontainer.launchcontainer.load_resource', DummyResource)
     @mock.patch('launchcontainer.launchcontainer.render_template')
@@ -160,7 +206,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         self.assertEqual(block.project_friendly, 'Foo Project Friendly Name')
         block.studio_submit(mock.Mock(method="POST", body=json.dumps({
             "project": proj_str,
-            "project_friendly": proj_friendly_str})))
+            "project_friendly": proj_friendly_str})).encode('utf-8'))
         self.assertEqual(block.display_name, "Container Launcher")
 
     def test_api_url_set_from_env_tokens(self):

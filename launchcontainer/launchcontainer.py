@@ -5,11 +5,7 @@
 
 import pkg_resources
 import logging
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    # python2 compatability
-    from urlparse import urlparse
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -23,6 +19,7 @@ from crum import get_current_user
 from xblock.core import XBlock
 from xblock.fields import Boolean, Scope, String
 from xblock.fragment import Fragment
+from xblockutils import settings as xblocksettings
 
 try:
     from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
@@ -55,6 +52,8 @@ STATIC_FILES = {
         'js_class': 'LaunchContainerXBlock'
     }
 }
+DEFAULT_SUPPORT_URL = '/help'
+DEFAULT_LAUNCHER_TIMEOUT_SECONDS = 120
 
 
 def make_cache_key(site_domain):
@@ -91,7 +90,8 @@ def _add_static(fragment, type, context):
 
 
 @XBlock.needs('user')
-class LaunchContainerXBlock(XBlock):
+@XBlock.wants('settings')
+class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
     """
     Provide a Fragment with associated Javascript to display to
     Students a button that will launch a configurable external course
@@ -134,9 +134,13 @@ class LaunchContainerXBlock(XBlock):
 
     support_email = String(
         display_name='Tech support email',
-        default=None,
+        default='',
         scope=Scope.content,
-        help=("Email address of tech support for AVL labs."),
+        help=(
+            "Email address of tech support for AVL labs. If set, help messages displayed "
+            "in case of error or timeout will use this address for a mailto: link.  If unset, "
+            "a link to the configured support URL (defaulting to /help) will be used instead."
+        ),
     )
 
     @property
@@ -220,7 +224,6 @@ class LaunchContainerXBlock(XBlock):
     # TODO: Cache this property?
     @property
     def user_email(self):
-
         user = get_current_user()
         if hasattr(user, 'email') and user.email:
             return user.email
@@ -231,18 +234,30 @@ class LaunchContainerXBlock(XBlock):
 
         return email
 
+    @property
+    def support_url(self):
+        lcsettings = self.get_xblock_settings()
+        return lcsettings.get('support_url', DEFAULT_SUPPORT_URL)
+
+    @property
+    def timeout_secs(self):
+        lcsettings = self.get_xblock_settings()
+        return lcsettings.get('timeout_seconds', DEFAULT_LAUNCHER_TIMEOUT_SECONDS)
+
     def student_view(self, context=None):
         """
         The primary view of the LaunchContainerXBlock, shown to students
         when viewing courses.
         """
-
+        support_email = self.support_email if self.support_email is not None else ''
         context = {
             'enable_container_resetting': self.enable_container_resetting,
             'project': self.project,
             'project_friendly': self.project_friendly,
             'project_token': self.project_token,
-            'support_email': self.support_email,
+            'support_email': support_email,
+            'support_url': self.support_url,
+            'timeout_seconds': self.timeout_secs,
             'user_email': self.user_email,
             'API_url': self.wharf_url,
             'API_delete_url': self.wharf_delete_url,
@@ -298,7 +313,7 @@ class LaunchContainerXBlock(XBlock):
             self.project = data['project'].strip()
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()
-            self.support_email = data.get('support_email', '').strip() or None
+            self.support_email = data.get('support_email', '')
             self.api_url = self.wharf_url
             self.api_delete_url = self.wharf_delete_url
 

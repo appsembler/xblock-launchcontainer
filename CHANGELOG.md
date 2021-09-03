@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Get support_url and timeout_seconds from XBlock settings or revert to platform-wide defaults
+- Styling improvements on error message links
+
+### Fixed
+- Fixed a Python 3 incompatibility in tests
+- Fixed test requirements
+- Refactored JS variables for better readability and DRY
+
+### Changed
+- Dropped Python 2 support
+
 ## [2.3.2] - 2021-07-30
 ### Added
 - Update support message with `help` page when support email is not set
