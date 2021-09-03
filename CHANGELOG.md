@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2021-09-03
+
 ### Added
 - Get support_url and timeout_seconds from XBlock settings or revert to platform-wide defaults
 - Styling improvements on error message links
