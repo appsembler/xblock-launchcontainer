@@ -1,0 +1,12 @@
+# Tahoe-specific packages go here.
+# These depedencies are OPTIONAL and the XBlock should work without them in non-Tahoe environments.
+#
+# Keep in sync with the edx-platform's `appsembler.txt` in Tahoe branch
+#
+# Release upgrade notes:
+#  - Do not just break older releases.
+#  - Communicate with the team to ensure no breaking changes are introduced.
+#
+
+tahoe-sites==1.3.1  # Juniper-compatible
+site-configuration-client==0.2.2  # Juniper-compatible
