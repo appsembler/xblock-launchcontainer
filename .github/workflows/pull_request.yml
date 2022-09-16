@@ -1,22 +1,42 @@
 name: Tox
-on: [push]
+on:
+  pull_request:
 
 jobs:
   tests:
     runs-on: ubuntu-latest
+    name: ${{ matrix.name }} - ${{ matrix.tox-env }}
     strategy:
       matrix:
-        python-version: [2.7, 3.5, 3.8]
+        include:
+          - name: bandit
+            python-version: 3.8
+            tox-env: bandit
+          - name: flake8
+            python-version: 3.8
+            tox-env: flake8
+          - name: Tahoe multi-tenant Juniper
+            python-version: 3.5
+            tox-env: py35-django2-tahoe
+          - name: Tahoe multi-tenant Koa
+            python-version: 3.8
+            tox-env: py38-django2-tahoe
+          - name: Vanilla Open edX Python 3.5
+            python-version: 3.5
+            tox-env: py3-django2
+          - name: Vanilla Open edX Python 3.8
+            python-version: 3.8
+            tox-env: py3-django2
+
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install virtualenv tox tox-gh-actions
-      - name: "Run tox targets for ${{ matrix.python-version }}"
-        run: "python -m tox"
-
+          python -m pip install virtualenv tox
+      - name: Run tox for ${{ matrix.name }}
+        run: tox -e ${{ matrix.tox-env }}
