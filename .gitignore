@@ -8,3 +8,6 @@ node_modules/
 geckodriver.log
 .cache
 .tox
+.coverage
+coverage.xml
+htmlcov/
