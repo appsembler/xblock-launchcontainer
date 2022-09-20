@@ -8,12 +8,13 @@ import logging
 from urllib.parse import urlparse
 
 from django.conf import settings
-from django.contrib.sites.models import Site
 from django.core import validators
-from django.core.cache import cache
-from django.db.models.signals import post_save
 from django.template import Context, Template
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import (
+    ImproperlyConfigured,
+    MultipleObjectsReturned,
+    ObjectDoesNotExist,
+)
 
 from crum import get_current_user
 from xblock.core import XBlock
@@ -22,22 +23,18 @@ from xblock.fragment import Fragment
 from xblockutils import settings as xblocksettings
 
 try:
-    from openedx.core.djangoapps.site_configuration import helpers as siteconfig_helpers
-    from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
-    from openedx.core.djangoapps.site_configuration.helpers import (
-        is_site_configuration_enabled
-    )
-    from openedx.core.djangoapps.theming.helpers import get_current_site
-except ImportError:  # We're in an older Open edX environment.
-    siteconfig_helpers = None
-    is_site_configuration_enabled = None
-    get_current_site = None
+    from site_config_client.openedx import api as site_config_client_api
+except ImportError:
+    site_config_client_api = None
 
+try:
+    from tahoe_sites import api as tahoe_sites_api
+except ImportError:
+    tahoe_sites_api = None
 
 logger = logging.getLogger(__name__)
 
 WHARF_URL_KEY = 'LAUNCHCONTAINER_WHARF_URL'
-CACHE_KEY_TIMEOUT = 60 * 60 * 72  # 72 hours.
 STATIC_FILES = {
     'studio': {
         'template': 'static/html/launchcontainer_edit.html',
@@ -56,8 +53,37 @@ DEFAULT_SUPPORT_URL = '/help'
 DEFAULT_LAUNCHER_TIMEOUT_SECONDS = 120
 
 
-def make_cache_key(site_domain):
-    return '{}.{}.'.format('launchcontainer_wharf_url', site_domain)
+def get_site_by_course(course_key):
+    """
+    Thin wrapper for tahoe_sites.api.get_site_by_course().
+    """
+    # Needs `tahoe-sites` to be installed.
+    if course_key and tahoe_sites_api:
+        try:
+            return tahoe_sites_api.get_site_by_course(course_key)
+        except (ObjectDoesNotExist, MultipleObjectsReturned):
+            logger.info("Error while getting site for course: %s", course_key, exc_info=True)
+
+    return None
+
+
+def get_tahoe_wharf_url_for_course(course_key, default=None):
+    """
+    Gets Tahoe Wharf URL for a specific course.
+
+    Safe fallback: This method will return `None` if the `tahoe-sites` package isn't installed.
+    """
+    # Needs `site-configuration-client` to be installed.
+    if site_config_client_api:
+        site = get_site_by_course(course_key)
+        if site:
+            return site_config_client_api.get_secret_value(
+                WHARF_URL_KEY,
+                site=site,
+                default=default,
+            )
+
+    return default
 
 
 def get_api_root_url(url):
@@ -97,6 +123,8 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
     Students a button that will launch a configurable external course
     Container via a call to Appsembler's container deploy API.
     """
+
+    has_author_view = True  # Tells Studio to use author_view
 
     display_name = String(help="Display name of the component",
                           default="Container Launcher",
@@ -143,82 +171,36 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
         ),
     )
 
-    @property
-    def wharf_url(self, force=False):
-        """Determine which site we're on, then get the Wharf URL that said
-        site has configured."""
+    def get_wharf_url(self, required=True):
+        """
+        Get WHARF URL.
+        """
+        course_id = getattr(self, "course_id", None)
 
-        # The complexities of Tahoe require that we check several places
-        # for the site configuration, which itself contains the URL
-        # of the AVL cluster associated with this site.
-        #
-        # If we are in Tahoe studio, the Site object associated with this request
-        # will not be the one used within Tahoe. To get the proper domain
-        # we rely on the "organization", which always equals `Site.name`.
-        # If the organization value does not return a site object, we are probably on
-        # the LMS side. In this case, we use `get_current_site()`, which _does_
-        # return the incorrect site object. If all this fails, we fallback
-        # to the DEFAULT_WHARF_URL.
-        try:
-            # The name of the Site object will always match self.course_id.org.
-            # See: https://git.io/vpilS
-            site = Site.objects.get(name=self.course_id.org)
-        except (Site.DoesNotExist, AttributeError):  # Probably on the lms side.
-            if get_current_site:
-                site = get_current_site()  # From the request.
-            else:
-                site = Site.objects.all().order_by('domain').first()
+        # System-wide fallback settings
+        system_default_wharf_url = settings.ENV_TOKENS.get(WHARF_URL_KEY)
 
-        url = cache.get(make_cache_key(site.domain))
-        if url:
-            return url
-
-        # Nothing in the cache. Go find the URL.
-        site_wharf_url = None
-        if hasattr(site, 'configuration'):
-            site_wharf_url = site.configuration.get_value(WHARF_URL_KEY)
-        elif siteconfig_helpers:
-            # Rely on edX's helper, which will fall back to the microsites app.
-            site_wharf_url = siteconfig_helpers.get_value(WHARF_URL_KEY)
-
-        urls = (
-            # A SiteConfig object: this is the preferred implementation.
-            (
-                'SiteConfiguration',
-                site_wharf_url
-            ),
-            # A string: the currently supported implementation.
-            (
-                "ENV_TOKENS[{}]".format(WHARF_URL_KEY),
-                settings.ENV_TOKENS.get(WHARF_URL_KEY)
-            ),
-            # A dict: the deprecated version.
-            (
-                "ENV_TOKENS['LAUNCHCONTAINER_API_CONF']",
-                settings.ENV_TOKENS.get('LAUNCHCONTAINER_API_CONF', {}).get('default')
-            ),
+        # Attempt getting Tahoe site-specific WHARF URL
+        wharf_url = get_tahoe_wharf_url_for_course(
+            course_id, default=system_default_wharf_url
         )
 
-        try:
-            url = next((x[1] for x in urls if is_valid(x[1])))
-        except StopIteration:
-            raise ImproperlyConfigured("No Virtual Labs URL was found, "
-                                       "please contact your site administrator.")
+        message = "A valid url for the LaunchContainer XBlock is needed: {}".format(wharf_url)
 
-        if not url:
-            raise AssertionError("You must set a valid url for the launchcontainer XBlock. "
-                                 "URLs attempted: {}".format(urls)
-                                 )
+        if wharf_url:
+            if not is_valid(wharf_url):
+                raise ImproperlyConfigured(message)  # Invalid URL
+        elif required:
+            raise ImproperlyConfigured(message)  # Missing required URL
 
-        cache.set(make_cache_key(site), url, CACHE_KEY_TIMEOUT)
+        return wharf_url
 
-        logger.debug("XBlock-launchcontainer urls attempted: {}".format(urls))
+    def get_wharf_delete_url(self, required=True):
+        wharf_url = self.get_wharf_url(required=required)
+        if not required and not wharf_url:
+            return wharf_url
 
-        return url
-
-    @property
-    def wharf_delete_url(self):
-        api_root = get_api_root_url(self.wharf_url)
+        api_root = get_api_root_url(wharf_url)
         return "{}/isc/dashboard/userprojectdeployments/delete_user_deployments/".format(api_root)
 
     # TODO: Cache this property?
@@ -244,7 +226,7 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
         lcsettings = self.get_xblock_settings()
         return lcsettings.get('timeout_seconds', DEFAULT_LAUNCHER_TIMEOUT_SECONDS)
 
-    def student_view(self, context=None):
+    def student_view(self, context=None, required_wharf_urls=True):
         """
         The primary view of the LaunchContainerXBlock, shown to students
         when viewing courses.
@@ -259,8 +241,8 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
             'support_url': self.support_url,
             'timeout_seconds': self.timeout_secs,
             'user_email': self.user_email,
-            'API_url': self.wharf_url,
-            'API_delete_url': self.wharf_delete_url,
+            'API_url': self.get_wharf_url(required=required_wharf_urls),
+            'API_delete_url': self.get_wharf_delete_url(required=required_wharf_urls),
         }
 
         return _add_static(Fragment(), 'student', context)
@@ -290,8 +272,8 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
             )
 
             context = {'fields': edit_fields,
-                       'API_url': self.wharf_url,
-                       'API_delete_url': self.wharf_delete_url,
+                       'API_url': self.get_wharf_url(required=False),
+                       'API_delete_url': self.get_wharf_delete_url(required=False),
                        'support_email': self.support_email,
                        'user_email': self.user_email
                        }
@@ -302,6 +284,12 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
             # TODO: Handle all the errors and handle them well.
             logger.error("Don't swallow my exceptions", exc_info=True)
             raise
+
+    def author_view(self, context=None):
+        """
+        Studio author preview view.
+        """
+        return self.student_view(context, required_wharf_urls=False)
 
     @XBlock.json_handler
     def studio_submit(self, data, suffix=''):
@@ -314,8 +302,8 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
             self.project_friendly = data['project_friendly'].strip()
             self.project_token = data['project_token'].strip()
             self.support_email = data.get('support_email', '')
-            self.api_url = self.wharf_url
-            self.api_delete_url = self.wharf_delete_url
+            self.api_url = self.get_wharf_url()
+            self.api_delete_url = self.get_wharf_delete_url()
 
             return {'result': 'success'}
 
@@ -354,30 +342,3 @@ def render_template(template_path, context=None):  # pragma: NO COVER
     template = Template(template_str)
 
     return template.render(Context(context))
-
-
-def update_wharf_url_cache(sender, **kwargs):
-    """
-    Receiver that will update the cache item that contains
-    this site's WHARF_URL_KEY.
-    TODO: This function could use a test or two once they are running in the edx
-    environment.
-    """
-    instance = kwargs['instance']
-
-    new_key = False
-    if hasattr(instance, 'values') and instance.values:
-        new_key = instance.values.get(WHARF_URL_KEY)
-    if new_key:
-        cache.set(make_cache_key(instance.site.domain),
-                  instance.values.get(WHARF_URL_KEY),
-                  CACHE_KEY_TIMEOUT
-                  )
-    else:
-        # Delete the key in the off chance that the user is trying
-        # to fall back to one of the other methods of storing the URL.
-        cache.delete(make_cache_key(instance.site.domain))
-
-
-if is_site_configuration_enabled:
-    post_save.connect(update_wharf_url_cache, sender=SiteConfiguration, weak=False)

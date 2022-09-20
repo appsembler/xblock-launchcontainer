@@ -1,24 +1,35 @@
 """
 Tests for launchcontainer
 """
-import json
-import mock
-import unittest
+from unittest import mock, skipUnless, TestCase
+from unittest.mock import patch
 
-from django.conf import settings
+import json
+
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 
 from xblock.field_data import DictFieldData
 from opaque_keys.edx.locations import Location, SlashSeparatedCourseKey
 
-from django.test import override_settings
+try:
+    from site_config_client.openedx import api as site_config_client_api
+    from site_config_client.openedx.test_helpers import override_site_config
+except ImportError:
+    site_config_client_api = None
 
 from .launchcontainer import STATIC_FILES, WHARF_URL_KEY
 
 WHARF_ENDPOINT_GOOD = "https://api.localhost"
 WHARF_ENDPOINT_BAD = "notARealUrl"
 WHARF_ENDPOINT_UNSET = ""
+
+
+def patch_with_env_token_wharf_url(wharf_url):
+    return patch.dict(
+        'django.conf.settings.ENV_TOKENS',
+        **{WHARF_URL_KEY: wharf_url}
+    )
 
 
 class DummyResource(object):
@@ -37,7 +48,7 @@ class DummyUser(object):
         self.emails = [email, ]
 
 
-class LaunchContainerXBlockTests(unittest.TestCase):
+class LaunchContainerXBlockTests(TestCase):
     """
     Create a launchcontainer block with mock data.
     """
@@ -94,6 +105,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
     @mock.patch('launchcontainer.launchcontainer.load_resource', DummyResource)
     @mock.patch('launchcontainer.launchcontainer.render_template')
     @mock.patch('launchcontainer.launchcontainer.Fragment')
+    @patch_with_env_token_wharf_url(WHARF_ENDPOINT_GOOD)
     def test_student_view(self, fragment, render_template):
         # pylint: disable=unused-argument
         """
@@ -116,7 +128,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         self.assertEqual(context['project_friendly'], 'Foo Project Friendly Name')
         self.assertEqual(context['project_token'], 'Foo token')
         self.assertEqual(context['user_email'], 'user@example.com')
-        self.assertEqual(context['API_url'], block.wharf_url)
+        self.assertEqual(context['API_url'], block.get_wharf_url())
         self.assertEqual(context['support_email'], 'support@example.com')
 
         # Confirm that the css was included.
@@ -128,10 +140,27 @@ class LaunchContainerXBlockTests(unittest.TestCase):
         self.assertEqual(javascript_template_arg, STATIC_FILES['student']['js'])
         fragment.initialize_js.assert_called_once_with(STATIC_FILES['student']['js_class'])
 
-    @mock.patch('launchcontainer.launchcontainer.load_resource', DummyResource)
+    def test_author_preview_view(self):
+        """
+        Test author preview view renders correctly with and without a wharf endpoint.
+        """
+        self.runtime.service = mock.Mock(return_value=self.user_service)
+        block = self.make_one("Custom name")
+
+        with patch_with_env_token_wharf_url(WHARF_ENDPOINT_GOOD):
+            fragment = block.author_view()
+            self.assertIn('launcher_form', fragment.body_html())  # form is rendered
+
+        with patch_with_env_token_wharf_url(None):
+            fragment = block.author_view()
+            # Error should be shown if the URL is missing on author view
+            self.assertIn('Error: Unable to connect to the Appsembler Virtual Labs API',
+                          fragment.body_html())
+
     @mock.patch('launchcontainer.launchcontainer.LaunchContainerXBlock.get_xblock_settings')
     @mock.patch('launchcontainer.launchcontainer.render_template')
     @mock.patch('launchcontainer.launchcontainer.Fragment')
+    @patch_with_env_token_wharf_url(WHARF_ENDPOINT_GOOD)
     def test_xblock_properties_from_settings(self, fragment, render_template, get_xblock_settings):
         """Test that if settings are configured they are used in favor of defaults.
         For support_url, timeout_seconds.
@@ -155,6 +184,7 @@ class LaunchContainerXBlockTests(unittest.TestCase):
     @mock.patch('launchcontainer.launchcontainer.load_resource', DummyResource)
     @mock.patch('launchcontainer.launchcontainer.render_template')
     @mock.patch('launchcontainer.launchcontainer.Fragment')
+    @patch_with_env_token_wharf_url(WHARF_ENDPOINT_GOOD)
     def test_studio_view(self, fragment, render_template):
         # pylint: disable=unused-argument
         """
@@ -209,40 +239,32 @@ class LaunchContainerXBlockTests(unittest.TestCase):
             "project_friendly": proj_friendly_str})).encode('utf-8'))
         self.assertEqual(block.display_name, "Container Launcher")
 
+    @patch_with_env_token_wharf_url(WHARF_ENDPOINT_GOOD)
     def test_api_url_set_from_env_tokens(self):
         """
         A valid URL at ENV_TOKENS[WHARF_URL_KEY] should be used as
         the URL for requests.
         """
-        ENV_TOKENS = settings.ENV_TOKENS
-        ENV_TOKENS[WHARF_URL_KEY] = WHARF_ENDPOINT_GOOD
+        block = self.make_one()
+        self.assertEqual(block.get_wharf_url(), WHARF_ENDPOINT_GOOD)
 
-        with override_settings(ENV_TOKENS=ENV_TOKENS):
-            block = self.make_one()
-            self.assertEqual(block.wharf_url, WHARF_ENDPOINT_GOOD)
-
+    @patch_with_env_token_wharf_url(None)
     def test_api_url_not_set(self):
         """
         If ENV_TOKENS[WHARF_URL_KEY] is not a valid url, an error should
         be raised because no good URL exists.
         """
-
-        ENV_TOKENS = settings.ENV_TOKENS
-        ENV_TOKENS[WHARF_URL_KEY] = None
-
-        with override_settings(ENV_TOKENS=ENV_TOKENS):
-            block = self.make_one()
-            with self.assertRaises(ImproperlyConfigured):
-                block.wharf_url
-
-    @mock.patch('launchcontainer.launchcontainer.logger')
-    @mock.patch('launchcontainer.launchcontainer.siteconfig_helpers')
-    def test_url_logging(self, config_helpers, mock_logger):
-        """The urls should always be logged to debug."""
-
-        config_helpers.get_value.return_value = WHARF_ENDPOINT_GOOD
         block = self.make_one()
+        with self.assertRaises(ImproperlyConfigured):
+            block.get_wharf_url()
 
-        block.wharf_url
-
-        self.assertEqual(mock_logger.debug.call_count, 1)
+    @skipUnless(site_config_client_api, 'Needs tahoe_sites.api to be loaded')
+    @patch('launchcontainer.launchcontainer.get_site_by_course')
+    def test_url_from_tahoe_site_config(self, mock_get_site_by_course):
+        """
+        Test getting URL from Tahoe Open edX site config client.
+        """
+        mock_get_site_by_course.return_value = {'id': 'dummy'}
+        with override_site_config("secret", **{WHARF_URL_KEY: WHARF_ENDPOINT_GOOD}):
+            block = self.make_one()
+            self.assertEqual(block.get_wharf_url(), WHARF_ENDPOINT_GOOD)
