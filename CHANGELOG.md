@@ -6,8 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
- - Install `tahoe-sites` and `site-configuration-client` to simulate Tahoe environment
- - Refactor testing environments to allow for more environments
+
+## [4.0.0] - 2022-09-19
+### Added
+
+ - Install `tahoe-sites` and `site-configuration-client` to simulate Tahoe environment.
+ - Add support for Tahoe 2.0 site by reading `LAUNCHCONTAINER_WHARF_URL` from Site Config Service `secret`s. Tahoe 1.0 sites will still use `site_values` as usual
+- Breaking change: Drop support for pre-Juniper Tahoe installations. The last version to support Hawthorn is `3.0.0`
+need to complicate the XBlock with caching calls.
+
+### Fixed
+ - Simplify reading the Wharf URL
+   * Read from `ENV_TOKENS` for regular Open edX installation (non-Tahoe)
+   * Read from [Site Configuration Client](https://github.com/appsembler/site-configuration-client/) for Juniper+ installations
+
+### Changed
+ - Refactored unit tests
+ - Refactor testing environments in `tox.ini` to test for `tahoe` and non `tahoe` environments removing `tox-gh-actions`.
+ - Remove complex and low-value caching for `wharf_url`
 
 ## [3.0.0] - 2021-09-03
 
