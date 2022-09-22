@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - Install `tahoe-sites` and `site-configuration-client` to simulate Tahoe environment.
  - Add support for Tahoe 2.0 site by reading `LAUNCHCONTAINER_WHARF_URL` from Site Config Service `secret`s. Tahoe 1.0 sites will still use `site_values` as usual
-- Breaking change: Drop support for pre-Juniper Tahoe installations. The last version to support Hawthorn is `3.0.0`
+ - Breaking change: Drop support for pre-Juniper Tahoe installations. The last version to support Hawthorn is `3.0.0`
 need to complicate the XBlock with caching calls.
 
 ### Fixed
