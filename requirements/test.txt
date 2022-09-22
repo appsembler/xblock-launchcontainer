@@ -6,7 +6,6 @@
 #  - Communicate with the team to ensure no breaking changes are introduced.
 #
 
-mock==2.0.0
 edx-opaque-keys==0.4.4
 django-crum==0.7.3
 selenium==3.4.3
@@ -26,3 +25,7 @@ XBlock>=1.4.0; python_version >= '3.9'  # Koa+
 
 xblock-sdk==0.2.2; python_version < '3.9'  # Juniper
 xblock-sdk>=0.3.0; python_version >= '3.9'  # Koa+
+
+django-pyfs==2.2
+lazy==1.4
+mock==2.0.0

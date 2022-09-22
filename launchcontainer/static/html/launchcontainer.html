@@ -1,4 +1,5 @@
 <div id="launcher1">
+{% if API_url %}
   <iframe src="{{ API_url }}" style="visibility: hidden" width="0" height="0"></iframe>
   <form id="launcher_form">
     <input type="text" class="hide" id="launcher_email" name="owner_email" {% if user_email %}value="{{ user_email }}"{% endif %} placeholder="Please enter your email address" />
@@ -8,5 +9,10 @@
   </form>
   <div id="launcher_notification" class="hide"></div>
   {% if enable_container_resetting %}<button type="button" class="ui-priority-primary" id="launcher_reset">Reset lab</button>{% endif %}
-
+{% else %}
+  {# This message is intended to appear Studio for course authors. #}
+  <p><strong>Error: Unable to connect to the Appsembler Virtual Labs API endpoint.</strong></p>
+  <p>Please configure your Appsembler Virtual Labs API endpoint before using this XBlock.</p>
+  <p>Contact the <a href="mailto:support@appsembler.com" target="_blank">Appsembler Support</a> for assistance.</p>
+{% endif %}
 </div>
