@@ -9,8 +9,10 @@
 edx-opaque-keys==0.4.4
 django-crum==0.7.3
 selenium==3.4.3
-pytest==3.1.2
+pytest==5.3.5
 
+pytest-django==3.8.0
+pytest-cov==2.8.1
 
 # XBlock dependencies to make testing easier mostly to import workbench.settings
 
