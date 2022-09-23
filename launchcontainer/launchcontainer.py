@@ -198,7 +198,8 @@ class LaunchContainerXBlock(XBlock, xblocksettings.XBlockWithSettingsMixin):
     def get_wharf_delete_url(self, required=True):
         wharf_url = self.get_wharf_url(required=required)
         if not required and not wharf_url:
-            return wharf_url
+            # If not required and empty, return None.
+            return None
 
         api_root = get_api_root_url(wharf_url)
         return "{}/isc/dashboard/userprojectdeployments/delete_user_deployments/".format(api_root)
